@@ -83,6 +83,9 @@
       "de": "German",
       "en": "English"
     },
+    "theme": {
+      "title": "Theme"
+    },
     "list": "List",
     "overview": "Overview",
     "quick-actions": {

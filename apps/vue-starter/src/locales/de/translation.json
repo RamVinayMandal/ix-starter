@@ -82,6 +82,9 @@
       "de": "Deutsch",
       "en": "Englisch"
     },
+    "theme": {
+      "title": "Design"
+    },
     "list": "Liste",
     "overview": "Übersicht",
     "quick-actions": {

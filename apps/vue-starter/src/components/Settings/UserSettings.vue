@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { themeSwitcher } from "@siemens/ix";
-import { IxTypography } from "@siemens/ix-vue";
+import { IxTypography, IxRadio, IxRadioGroup } from "@siemens/ix-vue";
 import { useShowDemoMessage } from "../../helpers/demoMessage";
 
 import brand from "../../assets/images/brand.png";
@@ -12,115 +12,108 @@ import styles from "./styles.module.css";
 const { t, locale } = useI18n();
 const showDemoMessage = useShowDemoMessage();
 
-// Set default theme based on environment
-// Production: brand theme, Local: classic theme
-const getDefaultTheme = () => {
+type Theme = "brand" | "classic";
+type Language = "en" | "de";
+
+const themes = [
+  { name: "Siemens Brand", value: "brand" as Theme, image: brand },
+  { name: "Classic", value: "classic" as Theme, image: classic },
+] as const;
+
+const getDefaultTheme = (): Theme => {
   return import.meta.env.VITE_THEME ? "brand" : "classic";
 };
 
-const currentTheme = ref(getDefaultTheme());
-const currentLanguage = ref("en");
+const currentTheme = ref<Theme>(getDefaultTheme());
+const currentLanguage = ref<Language>((locale.value as Language) || "en");
 
-// Initialize theme on component mount
-onMounted(() => {
+const isDarkMode = computed(() => {
   const currentVariant = themeSwitcher.getCurrentTheme();
-  const isDark = currentVariant.endsWith(themeSwitcher.suffixDark);
-  themeSwitcher.setTheme(`theme-${currentTheme.value}-${isDark ? "dark" : "light"}`);
+  return currentVariant.endsWith(themeSwitcher.suffixDark);
 });
 
-function changeTheme(theme: string) {
-  // If trying to select brand theme in local environment, show demo message
+onMounted(() => {
+  applyTheme(currentTheme.value);
+});
+
+watch(currentTheme, (newTheme) => {
+  applyTheme(newTheme);
+});
+
+watch(currentLanguage, (newLanguage) => {
+  locale.value = newLanguage;
+  localStorage.setItem("language", newLanguage);
+});
+
+function applyTheme(theme: Theme) {
+  const themeVariant = isDarkMode.value ? "dark" : "light";
+  themeSwitcher.setTheme(`theme-${theme}-${themeVariant}`);
+}
+
+function changeTheme(theme: Theme) {
   if (theme === "brand" && import.meta.env.VITE_THEME === undefined) {
     showDemoMessage();
     return;
   }
 
   currentTheme.value = theme;
-  const currentVariant = themeSwitcher.getCurrentTheme();
-  const isDark = currentVariant.endsWith(themeSwitcher.suffixDark);
-  themeSwitcher.setTheme(`theme-${theme}-${isDark ? "dark" : "light"}`);
 }
 
-function handleClick(event: Event, theme: string) {
+function handleThemeClick(event: Event, theme: Theme) {
   event.preventDefault();
   event.stopPropagation();
   changeTheme(theme);
 }
 
-function changeLanguage(language: string) {
+function changeLanguage(language: Language) {
   currentLanguage.value = language;
-  locale.value = language;
-  localStorage.setItem("language", language);
 }
 </script>
 
 <template>
-  <div>
-    <IxTypography format="h4" :class="styles.themeTitle">Theme</IxTypography>
+  <div :class="styles.UserSettings">
+    <IxTypography format="h4">{{ t("theme.title", "Theme") }}</IxTypography>
     <section :class="styles.ThemeSelection">
-      <!-- Brand Theme -->
       <div
+        v-for="theme in themes"
+        :key="theme.value"
         :class="styles.ThemeButton"
-        @click="(event) => handleClick(event, 'brand')"
+        @click="(event) => handleThemeClick(event, theme.value)"
       >
-        <div :class="[styles.ThemeImagePreview, currentTheme === 'brand' ? styles.Active : '']">
-          <img :src="brand" alt="Siemens brand theme" draggable="false" />
+        <div :class="[styles.ThemeImagePreview, { [styles.Active]: currentTheme === theme.value }]">
+          <img :src="theme.image" :alt="`${theme.name} theme`" draggable="false" />
         </div>
         <div>
-          <input
-            type="radio"
-            :checked="currentTheme === 'brand'"
-            id="SiemensBrand"
-            @change="() => changeTheme('brand')"
-            class="ix-form-control"
+          <IxRadio
+            :id="theme.value"
+            :checked="currentTheme === theme.value"
+            @checkedChange="() => changeTheme(theme.value)"
+            :label="theme.name"
           />
-          <label class="ix-form-label" for="SiemensBrand">Siemens Brand</label>
-        </div>
-      </div>
-
-      <!-- Classic Theme -->
-      <div
-        :class="styles.ThemeButton"
-        @click="(event) => handleClick(event, 'classic')"
-      >
-        <div :class="[styles.ThemeImagePreview, currentTheme === 'classic' ? styles.Active : '']">
-          <img :src="classic" alt="Classic theme" draggable="false" />
-        </div>
-        <div>
-          <input
-            type="radio"
-            :checked="currentTheme === 'classic'"
-            id="Classic"
-            @change="() => changeTheme('classic')"
-            class="ix-form-control"
-          />
-          <label class="ix-form-label" for="Classic">Classic</label>
         </div>
       </div>
     </section>
-
-    <IxTypography format="h4" :class="styles.languageTitle">Language</IxTypography>
-    <section :class="styles.LanguageSelection">
-      <div :class="styles.languageLabel">
-        <input
-          id="l_en"
-          type="radio"
-          :checked="currentLanguage === 'en'"
-          @change="() => changeLanguage('en')"
-          class="ix-form-control"
-        />
-        <label class="ix-form-label" for="l_en">English</label>
-      </div>
-      <div>
-        <input
-          id="l_de"
-          type="radio"
-          :checked="currentLanguage === 'de'"
-          @change="() => changeLanguage('de')"
-          class="ix-form-control"
-        />
-        <label class="ix-form-label" for="l_de">German</label>
-      </div>
+    
+    <section>
+      <IxTypography :class="styles.HeadlineLanguage" format="h4">
+        {{ t("language.title") }}
+      </IxTypography>
+      <section :class="styles.LanguageSelection">
+        <IxRadioGroup>
+          <IxRadio
+            id="l_en"
+            :checked="currentLanguage === 'en'"
+            @checkedChange="() => changeLanguage('en')"
+            :label="t('language.en')"
+          />
+          <IxRadio
+            id="l_de"
+            :checked="currentLanguage === 'de'"
+            @checkedChange="() => changeLanguage('de')"
+            :label="t('language.de')"
+          />
+        </IxRadioGroup>
+      </section>
     </section>
   </div>
 </template>
