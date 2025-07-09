@@ -1,0 +1,281 @@
+<script setup lang="ts">
+import { ref, computed, reactive, onMounted, watchEffect } from "vue";
+import DataTableInstance from "./DataTable.vue";
+import AddDevicesModal from "./AddDevicesModal.vue";
+import { showModal } from "@/helpers/modal";
+import {
+  IxPane,
+  IxTypography,
+  IxButton,
+  IxChip,
+  IxCategoryFilter,
+  IxDivider,
+  IxContentHeader,
+} from "@siemens/ix-vue";
+import {iconAddCircle, iconSuccess, iconMaintenanceWarning, iconError,iconInfo} from "@siemens/ix-icons/icons";
+
+const dataTableRef = ref<InstanceType<typeof DataTableInstance> | null>(null);
+const categories = computed(() => dataTableRef.value?.categories || {});
+
+const filterText = ref<string>("");
+const selectedStatus = ref<string | null>(null);
+const selectedCategory = ref<Record<string, string | null>>({}); // Track selected categories
+
+const modal = reactive({ addDevicesModal: false });
+const expanded = ref(false);
+interface DeviceData {
+  deviceName?: string;
+  vendor?: string;
+  deviceType?: string;
+  status?: string;
+  articleNumber?: string;
+  macAddress?: string;
+  ipAddress?: string;
+  firmwareVersion?: string;
+  serialNumber?: string;
+  [key: string]: any; // Allow additional properties
+}
+
+const selectedData = ref<DeviceData | null>(null);
+const addDeviceClick = async () => {
+  const modalInstance = await showModal(AddDevicesModal, "600");
+  modalInstance.onClose.on((device: DeviceData) => {
+    console.log('device added...' + JSON.stringify(device));
+  });
+};
+
+const resetFilter = () => {
+  filterText.value = "";
+  selectedStatus.value = null;
+  selectedCategory.value = {};
+};
+
+const toggleFilter = (status: string) => {
+  selectedStatus.value = selectedStatus.value === status ? null : status;
+};
+
+const handleCellClicked = (payload: { expanded: boolean; data: any }) => {
+  selectedData.value = payload.data;
+
+  // Force reset the expanded state to ensure the pane opens
+  expanded.value = false;
+  setTimeout(() => {
+    expanded.value = true;
+  }, 0);
+
+  console.log("Expanded:", expanded.value, "Data:", selectedData.value);
+};
+
+const handlePaneCollapse = () => {
+  expanded.value = false; // Reset expanded state when the pane is closed
+};
+
+// New toggleFilter for IxCategoryFilter
+const toggleCategoryFilter = (field: string, value: string) => {
+  selectedCategory.value[field] =
+    selectedCategory.value[field] === value ? null : value;
+};
+
+const formatKey = (key: string) => {
+  const formattedKey = key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/_/g, " ")
+    .toLowerCase();
+  return formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
+};
+const filteredDeviceDetails = computed(() => {
+  if (!selectedData.value) return {};
+  return Object.keys(selectedData.value).reduce(
+    (acc, key) => {
+      acc[key] = selectedData.value ? selectedData.value[key] : null;
+      return acc;
+    },
+    {} as Record<string, any>
+  );
+});
+
+onMounted(() => {
+  console.log("dataTableRef:", dataTableRef.value);
+  const pane = document.querySelector("ix-pane");
+  pane?.addEventListener("expandedChanged", (event: CustomEvent) => {
+    expanded.value = event.detail.expanded;
+  });
+});
+
+// ✅ Watch for changes in categories
+watchEffect(() => {
+  console.log("Updated Categories in DevicesList.vue:", categories.value);
+});
+
+const deviceState = computed(
+  () =>
+    dataTableRef.value?.deviceState || {
+      Error: 0,
+      Maintenance: 0,
+      Offline: 0,
+      Online: 0,
+    }
+);
+</script>
+
+<template>
+  <IxContentHeader slot="header" :headerTitle="'Devices'">
+    <IxButton
+      ghost
+      class="add-devices-button"
+      :icon="iconAddCircle"
+      @click="addDeviceClick"
+    >
+      Add device
+    </IxButton>
+  </IxContentHeader>
+  <section class="devices-page">
+    <!-- Filters -->
+    <section class="device-filter">
+      <IxCategoryFilter
+        placeholder="Filter by"
+        class="category-filter"
+        :categories="categories"
+        @select="
+          (field: string, value: string) => {
+            console.log(`Selected ${field}: ${value}`);
+            toggleCategoryFilter(field, value);
+          }
+        "
+      ></IxCategoryFilter>
+
+      <section class="quick-filter">
+        <IxChip
+          :outline="selectedStatus !== 'Online'"
+          :icon="iconSuccess"
+          variant="success"
+          @click="toggleFilter('Online')"
+        >
+          {{ deviceState.Online }} online
+        </IxChip>
+        <IxChip
+          :outline="selectedStatus !== 'Maintenance'"
+          :icon="iconMaintenanceWarning"
+          variant="warning"
+          @click="toggleFilter('Maintenance')"
+        >
+          {{ deviceState.Maintenance }} maintenance
+        </IxChip>
+        <IxChip
+          :outline="selectedStatus !== 'Error'"
+          :icon="iconError"
+          variant="alarm"
+          @click="toggleFilter('Error')"
+        >
+          {{ deviceState.Error }} error
+        </IxChip>
+        <IxChip
+          :outline="selectedStatus !== 'Offline'"
+          :icon="iconInfo"
+          variant="neutral"
+          @click="toggleFilter('Offline')"
+        >
+          {{ deviceState.Offline }} offline
+        </IxChip>
+      </section>
+    </section>
+
+    <!-- Data Table Component -->
+    <DataTableInstance
+      ref="dataTableRef"
+      :filterText="filterText"
+      :selectedStatus="selectedStatus"
+      :selectedCategory="selectedCategory"
+      @cell-clicked="handleCellClicked"
+    />
+  </section>
+  <IxPane
+    heading="Device Details"
+    composition="right"
+    size="320px"
+    variant="floating"
+    hideOnCollapse
+    :expanded="expanded"
+    class="pane-popup"
+    @collapse="handlePaneCollapse"
+  >
+    <div class="container">
+      <div>
+        <IxTypography format="h1" class="deviceName">
+          {{ selectedData?.deviceName || "No device selected" }}
+        </IxTypography>
+
+        <!-- Dynamically render device details -->
+        <div v-for="(value, key) in filteredDeviceDetails" :key="key">
+          <IxTypography format="body" textColor="soft">
+            {{ formatKey(key) }}
+          </IxTypography>
+          <IxTypography format="body" textColor="std">
+            {{ value }}
+          </IxTypography>
+          <IxDivider class="divider" />
+        </div>
+      </div>
+
+      <IxButton outline> Start Maintenance </IxButton>
+    </div>
+  </IxPane>
+</template>
+
+<style scoped>
+.devices-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.device-filter {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.device-filter section.quick-filter {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 38rem;
+}
+
+.category-filter {
+  flex: 1;
+  max-width: 100%;
+}
+.pane-popup {
+  position: fixed;
+  right: 0;
+  z-index: 10;
+}
+.deviceName {
+  overflow: hidden;
+  text-wrap: nowrap;
+  text-overflow: ellipsis;
+  margin-bottom: 2rem;
+}
+.divider {
+  margin: 0.5rem 0;
+}
+.container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  word-break: break-word;
+  padding: 0 0.75rem 1rem;
+  gap: 6rem;
+}
+</style>
