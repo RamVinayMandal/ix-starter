@@ -142,6 +142,10 @@ watch(() => deviceStore.devices, () => {
   prepareChartOptions();
 }, { deep: true });
 
+watch(theme, () => {
+  prepareChartOptions();
+});
+
 themeSwitcher.themeChanged.on((newTheme: string) => {
   theme.value = newTheme;
 });
