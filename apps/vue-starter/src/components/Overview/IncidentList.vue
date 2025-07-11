@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import incidentsData from "./Incidents.json";
+import { showDemoModal } from "@/helpers/modal";
+import type { Incident } from "./incident";
 import {
   IxLayoutGrid,
   IxTypography,
@@ -21,6 +22,7 @@ import {
   iconError,
   iconOpenExternal
 } from '@siemens/ix-icons/icons';
+
 addIcons({ 
   'cloud-upload': iconCloudUpload,
   'maintenance-warning': iconMaintenanceWarning,
@@ -29,26 +31,24 @@ addIcons({
 });
 
 const { t } = useI18n();
-const incidents = ref(incidentsData);
-const searchTerm = ref("");
 
-// Computed property to filter incidents based on the search term
-const filteredIncidents = computed(() => {
-  if (!searchTerm.value) {
-    return incidents.value;
-  }
+interface Props {
+  incidents: Incident[];
+  search: string;
+}
 
-  return incidents.value.filter(
-    (incident) =>
-      incident.incidentName
-        .toLowerCase()
-        .includes(searchTerm.value.toLowerCase()) ||
-      incident.deviceName
-        .toLowerCase()
-        .includes(searchTerm.value.toLowerCase()) ||
-      incident.ipAddress.toLowerCase().includes(searchTerm.value.toLowerCase())
+const props = defineProps<Props>();
+
+const searchFilter = (incident: Incident): boolean => {
+  if (!props.search) return true;
+  
+  const query = props.search.toLowerCase();
+  return Object.values(incident).some(
+    (value) => typeof value === "string" && value.toLowerCase().includes(query)
   );
-});
+};
+
+const filteredIncidents = computed(() => props.incidents.filter(searchFilter));
 </script>
 
 <template>
@@ -118,7 +118,7 @@ const filteredIncidents = computed(() => {
             </IxCol>
             <IxCol className="incident-actions">
               <IxIconButton variant="secondary" ghost :icon="iconOpenExternal"/>
-              <IxButton outline color="primary">{{t("incidents.create-task")}}</IxButton>
+              <IxButton outline color="primary" @click="showDemoModal">{{t("incidents.create-task")}}</IxButton>
             </IxCol>
           </IxRow>
         </IxLayoutGrid>
@@ -149,7 +149,6 @@ const filteredIncidents = computed(() => {
   display: flex;
   flex-wrap: nowrap;
   gap: 0.5rem;
-
   justify-content: flex-end;
   align-items: center;
 }

@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useI18n } from "vue-i18n";
 import incidentsData from "./Incidents.json";
 import IncidentList from "./IncidentList.vue";
 import {
-  IxLayoutGrid,
   IxTypography,
-  IxRow,
-  IxCol,
-  IxInputGroup,
+  IxInput,
   IxIcon,
-  IxEventListItem,
-  IxEventList,
   IxButton,
-  IxIconButton,
 } from "@siemens/ix-vue";
 import { iconSearch, iconCardLayout, iconList } from "@siemens/ix-icons/icons";
 import { showDemoModal } from "@/helpers/modal";
@@ -21,49 +15,27 @@ import { showDemoModal } from "@/helpers/modal";
 const { t } = useI18n();
 const incidents = ref(incidentsData);
 const searchTerm = ref("");
-
-const filteredIncidents = computed(() => {
-  if (!searchTerm.value) {
-    return incidents.value;
-  }
-
-  return incidents.value.filter(
-    (incident) =>
-      incident.incidentName
-        .toLowerCase()
-        .includes(searchTerm.value.toLowerCase()) ||
-      incident.deviceName
-        .toLowerCase()
-        .includes(searchTerm.value.toLowerCase()) ||
-      incident.ipAddress.toLowerCase().includes(searchTerm.value.toLowerCase())
-  );
-});
 </script>
 
 <template>
   <section class="incidents">
-    <IxTypography format="label" bold> Incidents </IxTypography>
+    <IxTypography format="label" bold>{{ t('incidents.title') }}</IxTypography>
     <div class="search-and-filter">
-      <IxInputGroup>
-        <input
-          v-model="searchTerm"
-          placeholder="Search"
-          type="text"
-          aria-label="Filter devices"
-          class="ix-form-control"
-        />
-        <span slot="input-start">
-          <IxIcon :name="iconSearch" color="color-primary" size="16"></IxIcon>
-        </span>
-      </IxInputGroup>
+      <IxInput
+        v-model="searchTerm"
+        :placeholder="t('search')"
+        type="text"
+        aria-label="Filter devices"
+      >
+        <IxIcon slot="start" :name="iconSearch" color="color-primary" size="16"></IxIcon>
+      </IxInput>
 
       <div class="btn-group">
-        <IxButton :icon="iconCardLayout" :outline="true" @click=showDemoModal> Cards </IxButton>
-        <IxButton :icon="iconList">List</IxButton>
+        <IxButton :icon="iconCardLayout" :outline="true" @click="showDemoModal">{{ t('cards') }}</IxButton>
+        <IxButton :icon="iconList">{{ t('list') }}</IxButton>
       </div>
     </div>
-    <!-- incidents="{incidents}" search="{searchTerm}" -->
-    <IncidentList></IncidentList>
+    <IncidentList :incidents="incidents" :search="searchTerm"></IncidentList>
   </section>
 </template>
 
@@ -72,10 +44,11 @@ const filteredIncidents = computed(() => {
   display: flex;
   gap: 1rem;
   margin-block-end: 0.75rem;
+  align-items: flex-end;
+}
 
-  ix-input-group {
-    max-width: 12.5rem;
-  }
+.search-and-filter :deep(ix-input) {
+  max-width: 12.5rem;
 }
 
 .incidents {
