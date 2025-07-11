@@ -10,7 +10,7 @@ import * as components from "echarts/components";
 import * as renderer from "echarts/renderers";
 import { type EChartsOption } from "echarts";
 import { useI18n } from "vue-i18n";
-import { useDeviceStore } from "@/stores/deviceStore";
+import { useDeviceStore } from "@/store/deviceStore";
 import type { Device } from "@/types";
 
 registerTheme(echarts);

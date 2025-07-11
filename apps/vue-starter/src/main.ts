@@ -9,8 +9,6 @@ import App from './App.vue';
 import router from './router/index';
 
 function optionalTheme() {
-  // Brand theme is now loaded via CSS imports in index.css
-  // Set default theme to brand dark for local development
   if (import.meta.env.DEV) {
     document.body.classList.add("theme-brand-dark");
   }
