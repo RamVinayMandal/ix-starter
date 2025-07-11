@@ -29,6 +29,9 @@ importers:
       '@siemens/ix-aggrid':
         specifier: 3.0.0
         version: 3.0.0(@siemens/ix-icons@3.0.0)(ag-grid-community@32.2.1)
+      '@siemens/ix-brand-theme':
+        specifier: ^2.3.0
+        version: 2.3.0(@stencil/core@4.31.0)
       '@siemens/ix-echarts':
         specifier: 3.0.0
         version: 3.0.0(echarts@5.5.1)
@@ -156,6 +159,9 @@ importers:
       '@siemens/ix-aggrid':
         specifier: 3.0.0
         version: 3.0.0(@siemens/ix-icons@3.0.0)(ag-grid-community@32.2.1)
+      '@siemens/ix-brand-theme':
+        specifier: ^2.3.0
+        version: 2.3.0(@stencil/core@4.31.0)
       '@siemens/ix-echarts':
         specifier: 3.0.0
         version: 3.0.0(echarts@5.5.1)
@@ -186,6 +192,9 @@ importers:
       i18next:
         specifier: ^23.15.1
         version: 23.15.1
+      pinia:
+        specifier: ^3.0.3
+        version: 3.0.3(typescript@5.6.3)(vue@3.5.13)
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.6.3)
@@ -1523,6 +1532,14 @@ packages:
       - '@siemens/ix-icons'
     dev: false
 
+  /@siemens/ix-brand-theme@2.3.0(@stencil/core@4.31.0):
+    resolution: {integrity: sha512-Hxe1e4QNJeDUEofm9OZQxuVJjIUjsRiLtlYddI+N+7NdlpXcQcbSmBzkeqOchQNw2mLDhAC3P5SLYd8txO+nxg==, tarball: https://captain.rtf.siemens.net/artifactory/api/npm/siemens-npm/@siemens/ix-brand-theme/-/@siemens/ix-brand-theme-2.3.0.tgz}
+    peerDependencies:
+      '@stencil/core': ^4.29.2
+    dependencies:
+      '@stencil/core': 4.31.0
+    dev: false
+
   /@siemens/ix-echarts@3.0.0(echarts@5.5.1):
     resolution: {integrity: sha512-N/L1Og+pwSYT6U2lKp5bRnZ+4CAx+mXl8kWmssCCf8OaEXdJg5ZSGCmqHjGFOZFZe5Ph8P5il+WvyeZkFyiJ2w==}
     peerDependencies:
@@ -2372,6 +2389,12 @@ packages:
     resolution: {integrity: sha512-sGhTPMuXqZ1rVOk32RylztWkfXTRhuS7vgAKv0zjqk8gbsHkJ7xfFf+jbySxt7tWObEJwyKaHMikV/WGDiQm8g==}
     dev: false
 
+  /@vue/devtools-api@7.7.7:
+    resolution: {integrity: sha512-lwOnNBH2e7x1fIIbVT7yF5D+YWhqELm55/4ZKf45R9T8r9dE2AIOy8HKjfqzGsoTHFbWbr337O4E0A0QADnjBg==}
+    dependencies:
+      '@vue/devtools-kit': 7.7.7
+    dev: false
+
   /@vue/devtools-core@7.7.7(vite@6.3.5)(vue@3.5.13):
     resolution: {integrity: sha512-9z9TLbfC+AjAi1PQyWX+OErjIaJmdFlbDHcD+cAMYKY6Bh5VlsAtCeGyRMrXwIlMEQPukvnWt3gZBLwTAIMKzQ==}
     peerDependencies:
@@ -2398,13 +2421,11 @@ packages:
       perfect-debounce: 1.0.0
       speakingurl: 14.0.1
       superjson: 2.2.2
-    dev: true
 
   /@vue/devtools-shared@7.7.7:
     resolution: {integrity: sha512-+udSj47aRl5aKb0memBvcUG9koarqnxNM5yjuREvqwK6T3ap4mn3Zqqc17QrBFTqSMjr3HK1cvStEZpMDpfdyw==}
     dependencies:
       rfdc: 1.4.1
-    dev: true
 
   /@vue/eslint-config-prettier@10.1.0(eslint@9.12.0)(prettier@3.3.3):
     resolution: {integrity: sha512-J6wV91y2pXc0Phha01k0WOHBTPsoSTf4xlmMjoKaeSxBpAdsgTppGF5RZRdOHM7OA74zAXD+VLANrtYXpiPKkQ==}
@@ -2751,7 +2772,6 @@ packages:
 
   /birpc@2.4.0:
     resolution: {integrity: sha512-5IdNxTyhXHv2UlgnPHQ0h+5ypVmkrYHzL8QT+DwFZ//2N/oNV8Ch+BCRmTJ3x6/z9Axo/cXYBc9eprsUVK/Jsg==}
-    dev: true
 
   /boolbase@1.0.0:
     resolution: {integrity: sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==}
@@ -2918,7 +2938,6 @@ packages:
     engines: {node: '>=12.13'}
     dependencies:
       is-what: 4.1.16
-    dev: true
 
   /cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -3948,7 +3967,6 @@ packages:
 
   /hookable@5.5.3:
     resolution: {integrity: sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ==}
-    dev: true
 
   /html-dom-parser@5.0.13:
     resolution: {integrity: sha512-B7JonBuAfG32I7fDouUQEogBrz3jK9gAuN1r1AaXpED6dIhtg/JwiSRhjGL7aOJwRz3HU4efowCjQBaoXiREqg==}
@@ -4301,7 +4319,6 @@ packages:
   /is-what@4.1.16:
     resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
     engines: {node: '>=12.13'}
-    dev: true
 
   /is-wsl@3.1.0:
     resolution: {integrity: sha512-UcVfVfaK4Sc4m7X3dUSoHoozQGBEFeDC+zVo06t98xe8CzHSZZBekNXH+tu0NalHolcJ/QAGqS46Hef7QXBIMw==}
@@ -4585,7 +4602,6 @@ packages:
 
   /mitt@3.0.1:
     resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
-    dev: true
 
   /mkdirp@3.0.1:
     resolution: {integrity: sha512-+NsyUUAZDmo6YVHzL/stxSu3t9YS1iljliy3BSDrXJ/dkn1KYdmtZODGGjLcc9XLgVVpH4KshHB8XmZgMhaBXg==}
@@ -4845,7 +4861,6 @@ packages:
 
   /perfect-debounce@1.0.0:
     resolution: {integrity: sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==}
-    dev: true
 
   /picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
@@ -4864,6 +4879,20 @@ packages:
     engines: {node: '>=0.10'}
     hasBin: true
     dev: true
+
+  /pinia@3.0.3(typescript@5.6.3)(vue@3.5.13):
+    resolution: {integrity: sha512-ttXO/InUULUXkMHpTdp9Fj4hLpD/2AoJdmAbAeW2yu1iy1k+pkFekQXw5VpC0/5p51IOR/jDaDRfRWRnMMsGOA==}
+    peerDependencies:
+      typescript: '>=4.4.4'
+      vue: ^2.7.0 || ^3.5.11
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@vue/devtools-api': 7.7.7
+      typescript: 5.6.3
+      vue: 3.5.13(typescript@5.6.3)
+    dev: false
 
   /playwright-core@1.51.1:
     resolution: {integrity: sha512-/crRMj8+j/Nq5s8QcvegseuyeZPxpQCZb6HNk3Sos3BlZyAknRjoyJPFWkpNn8v0+P3WiwqFF8P+zQo4eqiNuw==}
@@ -5116,7 +5145,6 @@ packages:
 
   /rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
-    dev: true
 
   /rimraf@5.0.10:
     resolution: {integrity: sha512-l0OE8wL34P4nJH/H2ffoaniAokM2qSmrtXHmlpvYr5AVVX8msAyW0l8NVJFDxlSK4u3Uh/f41cQheDVdnYijwQ==}
@@ -5356,7 +5384,6 @@ packages:
   /speakingurl@14.0.1:
     resolution: {integrity: sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==}
     engines: {node: '>=0.10.0'}
-    dev: true
 
   /stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -5498,7 +5525,6 @@ packages:
     engines: {node: '>=16'}
     dependencies:
       copy-anything: 3.0.5
-    dev: true
 
   /supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}

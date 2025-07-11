@@ -15,6 +15,7 @@
   "dependencies": {
     "@siemens/ix": "3.0.0",
     "@siemens/ix-aggrid": "3.0.0",
+    "@siemens/ix-brand-theme": "^2.3.0",
     "@siemens/ix-echarts": "3.0.0",
     "@siemens/ix-icons": "3.0.0",
     "@siemens/ix-vue": "3.0.0",
@@ -25,6 +26,7 @@
     "echarts": "^5.5.1",
     "element-internals-polyfill": "^3.0.1",
     "i18next": "^23.15.1",
+    "pinia": "^3.0.3",
     "vue": "^3.5.13",
     "vue-echarts": "^7.0.3",
     "vue-i18n": "^11.0.1",

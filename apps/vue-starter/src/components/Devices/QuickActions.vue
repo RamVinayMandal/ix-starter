@@ -10,10 +10,7 @@ import {
 } from "@siemens/ix-vue";
 import {iconPen, iconTrashcan, iconContextMenu, iconDuplicate, iconCut, iconCopy, iconPaste, iconRename, iconPcTower} from "@siemens/ix-icons/icons";
 
-import { defineProps } from "vue";
-
 const props = defineProps(["params", "api", "node"]);
-
 
 const startEditingFirstCell = () => {  
   console.log(props.params.node.data)

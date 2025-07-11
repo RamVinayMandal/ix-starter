@@ -7,12 +7,17 @@ const messages = {
   de
 };
 
-export function setupI18n() {
-  const i18n = createI18n({
-    locale: 'en', // set locale
-    fallbackLocale: 'en', // set fallback locale
-    messages, // set locale messages
-  });
+const i18n = createI18n({
+  legacy: false, 
+  locale: 'en', 
+  fallbackLocale: 'en', 
+  messages,
+  globalInjection: true,
+});
 
+// Export the i18n instance for direct access
+export { i18n };
+
+export function setupI18n() {
   return i18n;
 }

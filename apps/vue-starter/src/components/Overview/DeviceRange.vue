@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { themeSwitcher } from "@siemens/ix";
-import { IxCard, IxCardContent, IxIcon, IxTypography } from "@siemens/ix-vue";
+import { IxCard, IxCardContent, IxTypography } from "@siemens/ix-vue";
 import { registerTheme, getComputedCSSProperty } from "@siemens/ix-echarts";
 import VueECharts from "vue-echarts";
 import * as echarts from "echarts/core";
@@ -10,15 +10,15 @@ import * as components from "echarts/components";
 import * as renderer from "echarts/renderers";
 import { type EChartsOption } from "echarts";
 import { useI18n } from "vue-i18n";
+import { useDeviceStore } from "@/stores/deviceStore";
+import type { Device } from "@/types";
 
 registerTheme(echarts);
 
-const theme = ref(themeSwitcher.getCurrentTheme());
+const { t } = useI18n();
+const deviceStore = useDeviceStore();
 
-themeSwitcher.themeChanged.on((newTheme: string) => {
-  theme.value = newTheme;
-  prepareChartOptions();
-});
+const theme = ref(themeSwitcher.getCurrentTheme());
 
 echarts.use([
   components.TooltipComponent,
@@ -29,11 +29,76 @@ echarts.use([
   renderer.CanvasRenderer,
 ]);
 
-let barChartOption: EChartsOption;
-prepareChartOptions();
+onMounted(async () => {
+  await deviceStore.fetchDevices();
+  prepareChartOptions();
+});
 
-function prepareChartOptions() {
-  barChartOption = {
+function reduceDevices(devices: Device[]) {
+  const onlineData = new Map<string, number>();
+  const offlineData = new Map<string, number>();
+  const maintenanceData = new Map<string, number>();
+  const errorData = new Map<string, number>();
+
+  function fillData(device: Device, data: Map<string, number>, state: string) {
+    const ipSegment = device.ipAddress.split(".")[0] + ".x";
+
+    if (device.status !== state) {
+      return;
+    }
+
+    if (data.has(ipSegment)) {
+      data.set(ipSegment, data.get(ipSegment)! + 1);
+    } else {
+      data.set(ipSegment, 1);
+    }
+  }
+
+  devices.forEach((device) => {
+    fillData(device, onlineData, "Online");
+    fillData(device, maintenanceData, "Maintenance");
+    fillData(device, errorData, "Error");
+    fillData(device, offlineData, "Offline");
+  });
+
+  function createSeries(data: Map<string, number>) {
+    return Array.from(data).map(([name, value]) => [value, name]);
+  }
+
+  return [
+    {
+      name: "Online",
+      data: createSeries(onlineData),
+      type: "bar" as const,
+      stack: "x",
+      color: getComputedCSSProperty("color-success"),
+    },
+    {
+      name: "Maintenance",
+      data: createSeries(maintenanceData),
+      type: "bar" as const,
+      stack: "x",
+      color: getComputedCSSProperty("color-warning"),
+    },
+    {
+      name: "Error",
+      data: createSeries(errorData),
+      type: "bar" as const,
+      stack: "x",
+      color: getComputedCSSProperty("color-alarm"),
+    },
+    {
+      name: "Offline",
+      data: createSeries(offlineData),
+      type: "bar" as const,
+      stack: "x",
+      color: getComputedCSSProperty("color-neutral"),
+    },
+  ];
+}
+
+function getOption(): EChartsOption {
+  return {
     tooltip: {
       trigger: "item",
     },
@@ -58,49 +123,34 @@ function prepareChartOptions() {
       top: 45,
       bottom: 85,
     },
-    series: [
-      {
-        name: "Online",
-        data: [
-          [16, "172.x"],
-          [11, "192.x"],
-          [3, "20.x"],
-          [1, "10.x"],
-        ],
-        type: "bar",
-        stack: "x",
-        color: getComputedCSSProperty("color-success"),
-      },
-      {
-        name: "Maintenance",
-        data: [[2, "172.x"]],
-        type: "bar",
-        stack: "x",
-        color: getComputedCSSProperty("color-warning"),
-      },
-      {
-        name: "Error",
-        data: [[1, "192.x"]],
-        type: "bar",
-        stack: "x",
-        color: getComputedCSSProperty("color-alarm"),
-      },
-      {
-        name: "Offline",
-        data: [[1, "192.x"]],
-        type: "bar",
-        stack: "x",
-        color: getComputedCSSProperty("color-neutral"),
-      },
-    ],
   };
 }
+
+const barChartOption = ref<EChartsOption>(getOption());
+
+function prepareChartOptions() {
+  const data = reduceDevices(deviceStore.devices);
+  const option = {
+    ...getOption(),
+    series: data,
+  };
+  
+  barChartOption.value = option;
+}
+
+watch(() => deviceStore.devices, () => {
+  prepareChartOptions();
+}, { deep: true });
+
+themeSwitcher.themeChanged.on((newTheme: string) => {
+  theme.value = newTheme;
+});
 </script>
 
 <template>
   <IxCard class="device-range">
     <IxCardContent>
-      <IxTypography format="label" bold>Device status</IxTypography>
+      <IxTypography format="label" bold>{{ t('device-status.title') }}</IxTypography>
       <VueECharts
         class="charts"
         :theme="theme"
@@ -118,7 +168,7 @@ function prepareChartOptions() {
   max-height: 21rem;
 }
 
-charts {
+.charts {
   position: relative;
   width: 100%;
   height: 100%;

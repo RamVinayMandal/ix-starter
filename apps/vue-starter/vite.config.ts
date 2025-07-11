@@ -9,16 +9,20 @@ const base = process.env.VUE_BASE || "/";
 
 function checkForAdditionalTheme() {
   try {
-    const themePackage = import.meta.resolve("@siemens-ix/corporate-theme");
+    // Use corporate theme for production, brand theme for local development
+    const isProduction = process.env.NODE_ENV === 'production';
+    const themePackageName = isProduction ? "@siemens-ix/corporate-theme" : "@siemens/ix-brand-theme";
+    
+    const themePackage = import.meta.resolve(themePackageName);
     const theme = path.join(themePackage.replace("file://", ""), "..", "..");
     const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
     fs.copySync(theme, path.join(currentDir, "public", "theme"), {
       filter: (src) => {
-        return !src.includes("corporate-theme-alternative/node_modules");
+        return !src.includes("node_modules");
       },
     });
-    console.log("Load additional theme");
+    console.log(`Load additional theme: ${themePackageName}`);
   } catch (e) {
     console.log("No additional theme found", e);
   }
