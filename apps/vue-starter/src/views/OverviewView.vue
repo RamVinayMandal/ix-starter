@@ -4,10 +4,8 @@ import DeviceRange from "../components/Overview/DeviceRange.vue";
 import StatusHistory from "../components/Overview/StatusHistory.vue";
 import IncidentHistory from "../components/Overview/IncidentHistory.vue";
 import { useI18n } from "vue-i18n";
-import { useIsMobileViewPort } from "@/composables/useMediaQuery";
 
 const { t } = useI18n();
-const isMobile = useIsMobileViewPort();
 </script>
 
 <template>
@@ -29,16 +27,33 @@ const isMobile = useIsMobileViewPort();
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  overflow: hidden;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .list {
+    overflow: visible;
+  }
 }
 
 .card-container {
   display: flex;
   gap: 1rem;
-  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .card-container {
+    flex-direction: column;
+  }
 }
 
 ix-card {
   width: 100%;
-  min-height: 25rem;
+  flex: 1;
+}
+
+ix-card + ix-card {
+  flex: 2;
 }
 </style>
