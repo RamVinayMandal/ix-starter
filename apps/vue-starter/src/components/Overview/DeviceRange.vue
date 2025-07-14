@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, onUnmounted } from "vue";
+import { ref, watch } from "vue";
 import { themeSwitcher } from "@siemens/ix";
 import { IxCard, IxCardContent, IxTypography } from "@siemens/ix-vue";
 import { registerTheme, getComputedCSSProperty } from "@siemens/ix-echarts";
@@ -12,14 +12,9 @@ import { type EChartsOption } from "echarts";
 import { useI18n } from "vue-i18n";
 import { useDeviceStore } from "@/store/deviceStore";
 import type { Device } from "@/types";
+import { useChart } from "../../composables/useChart";
 
 registerTheme(echarts);
-
-const { t } = useI18n();
-const deviceStore = useDeviceStore();
-
-const chartRef = ref();
-const theme = ref(themeSwitcher.getCurrentTheme());
 
 echarts.use([
   components.TooltipComponent,
@@ -30,23 +25,21 @@ echarts.use([
   renderer.CanvasRenderer,
 ]);
 
-onMounted(async () => {
+const { t } = useI18n();
+const deviceStore = useDeviceStore();
+const chartRef = ref();
+const theme = ref(themeSwitcher.getCurrentTheme());
+const barChartOption = ref<EChartsOption>(getOption());
+
+const initializeChart = async () => {
   await deviceStore.fetchDevices();
-  await nextTick();
-  await new Promise(resolve => setTimeout(resolve, 100));
   prepareChartOptions();
-  
-  const handleResize = () => {
-    if (chartRef.value) {
-      chartRef.value.resize();
-    }
-  };
-  
-  window.addEventListener("resize", handleResize);
-  
-  onUnmounted(() => {
-    window.removeEventListener("resize", handleResize);
-  });
+};
+
+useChart({
+  chartRef,
+  initializeChart,
+  optionRef: barChartOption
 });
 
 function reduceDevices(devices: Device[]) {
@@ -141,31 +134,16 @@ function getOption(): EChartsOption {
   };
 }
 
-const barChartOption = ref<EChartsOption>(getOption());
-
 function prepareChartOptions() {
   const data = reduceDevices(deviceStore.devices);
-  const option = {
+  barChartOption.value = {
     ...getOption(),
     series: data,
   };
-  
-  barChartOption.value = option;
-  
-  nextTick(() => {
-    if (chartRef.value) {
-      chartRef.value.resize();
-    }
-  });
 }
 
-watch(() => deviceStore.devices, () => {
-  prepareChartOptions();
-}, { deep: true });
-
-watch(theme, () => {
-  prepareChartOptions();
-});
+watch(() => deviceStore.devices, prepareChartOptions, { deep: true });
+watch(theme, prepareChartOptions);
 
 themeSwitcher.themeChanged.on((newTheme: string) => {
   theme.value = newTheme;
