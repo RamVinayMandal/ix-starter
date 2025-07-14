@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, nextTick, onUnmounted } from "vue";
 import { themeSwitcher } from "@siemens/ix";
 import { IxCard, IxCardContent, IxTypography } from "@siemens/ix-vue";
 import { registerTheme, getComputedCSSProperty } from "@siemens/ix-echarts";
@@ -12,6 +12,7 @@ import { type EChartsOption } from "echarts";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
+const chartRef = ref();
 const theme = ref(themeSwitcher.getCurrentTheme());
 
 registerTheme(echarts);
@@ -130,8 +131,32 @@ function getOption(): EChartsOption {
 
 const lineChartOption = ref<EChartsOption>(getOption());
 
+onMounted(async () => {
+  await nextTick();
+  await new Promise(resolve => setTimeout(resolve, 100));
+  updateChartOptions();
+  
+  const handleResize = () => {
+    if (chartRef.value) {
+      chartRef.value.resize();
+    }
+  };
+  
+  window.addEventListener("resize", handleResize);
+  
+  onUnmounted(() => {
+    window.removeEventListener("resize", handleResize);
+  });
+});
+
 function updateChartOptions() {
   lineChartOption.value = getOption();
+  
+  nextTick(() => {
+    if (chartRef.value) {
+      chartRef.value.resize();
+    }
+  });
 }
 
 watch(theme, () => {
@@ -148,10 +173,12 @@ themeSwitcher.themeChanged.on((newTheme: string) => {
     <IxCardContent>
       <IxTypography format="label" bold>{{ t('status-history.title') }}</IxTypography>
       <VueECharts
+        ref="chartRef"
         class="charts"
         :theme="theme"
         :option="lineChartOption"
         autoresize
+        :init-options="{ renderer: 'canvas' }"
       />
     </IxCardContent>
   </IxCard>

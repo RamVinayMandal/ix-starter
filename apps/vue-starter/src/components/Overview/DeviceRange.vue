@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, nextTick, onUnmounted } from "vue";
 import { themeSwitcher } from "@siemens/ix";
 import { IxCard, IxCardContent, IxTypography } from "@siemens/ix-vue";
 import { registerTheme, getComputedCSSProperty } from "@siemens/ix-echarts";
@@ -18,6 +18,7 @@ registerTheme(echarts);
 const { t } = useI18n();
 const deviceStore = useDeviceStore();
 
+const chartRef = ref();
 const theme = ref(themeSwitcher.getCurrentTheme());
 
 echarts.use([
@@ -31,7 +32,21 @@ echarts.use([
 
 onMounted(async () => {
   await deviceStore.fetchDevices();
+  await nextTick();
+  await new Promise(resolve => setTimeout(resolve, 100));
   prepareChartOptions();
+  
+  const handleResize = () => {
+    if (chartRef.value) {
+      chartRef.value.resize();
+    }
+  };
+  
+  window.addEventListener("resize", handleResize);
+  
+  onUnmounted(() => {
+    window.removeEventListener("resize", handleResize);
+  });
 });
 
 function reduceDevices(devices: Device[]) {
@@ -136,6 +151,12 @@ function prepareChartOptions() {
   };
   
   barChartOption.value = option;
+  
+  nextTick(() => {
+    if (chartRef.value) {
+      chartRef.value.resize();
+    }
+  });
 }
 
 watch(() => deviceStore.devices, () => {
@@ -156,10 +177,12 @@ themeSwitcher.themeChanged.on((newTheme: string) => {
     <IxCardContent>
       <IxTypography format="label" bold>{{ t('device-status.title') }}</IxTypography>
       <VueECharts
+        ref="chartRef"
         class="charts"
         :theme="theme"
         :option="barChartOption"
         autoresize
+        :init-options="{ renderer: 'canvas' }"
       />
     </IxCardContent>
   </IxCard>

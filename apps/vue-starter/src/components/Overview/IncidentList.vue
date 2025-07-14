@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { showDemoModal } from "@/helpers/modal";
+import { useIsMobileViewPort } from "@/composables/useMediaQuery";
 import type { Incident } from "./incident";
 import {
   IxLayoutGrid,
@@ -20,35 +21,39 @@ import {
   iconMaintenanceWarning,
   iconInfo,
   iconError,
-  iconOpenExternal
+  iconOpenExternal,
+  iconUpload
 } from '@siemens/ix-icons/icons';
 
 addIcons({ 
   'cloud-upload': iconCloudUpload,
   'maintenance-warning': iconMaintenanceWarning,
   'info': iconInfo,
-  'error': iconError
+  'error': iconError,
+  'open-external': iconOpenExternal,
+  'upload': iconUpload
 });
 
 const { t } = useI18n();
+const isMobile = useIsMobileViewPort();
 
-interface Props {
+const props = defineProps<{
   incidents: Incident[];
   search: string;
-}
+}>();
 
-const props = defineProps<Props>();
+const filteredIncidents = computed(() => {
+  if (!props.search) {
+    return props.incidents;
+  }
 
-const searchFilter = (incident: Incident): boolean => {
-  if (!props.search) return true;
-  
   const query = props.search.toLowerCase();
-  return Object.values(incident).some(
-    (value) => typeof value === "string" && value.toLowerCase().includes(query)
+  return props.incidents.filter(incident =>
+    Object.values(incident).some(
+      value => typeof value === "string" && value.toLowerCase().includes(query)
+    )
   );
-};
-
-const filteredIncidents = computed(() => props.incidents.filter(searchFilter));
+});
 </script>
 
 <template>
@@ -93,10 +98,11 @@ const filteredIncidents = computed(() => props.incidents.filter(searchFilter));
         :key="incident.id"
         :itemColor="'color-' + incident.color"
       >
-        <IxLayoutGrid noMargin>
+        <!-- Desktop Layout -->
+        <IxLayoutGrid v-if="!isMobile" :noMargin="true">
           <IxRow>
             <IxCol size="3">
-              <IxRow style="gap: 1rem">
+              <IxRow style="gap: 1rem" class="no-wrap">
                 <IxIcon :name="incident.icon" size="24" />
                 <IxTypography bold>{{ incident.incidentName }}</IxTypography>
               </IxRow>
@@ -106,19 +112,46 @@ const filteredIncidents = computed(() => props.incidents.filter(searchFilter));
                 }}</IxTypography>
               </IxRow>
             </IxCol>
-            <IxCol siz e="3">
+            <IxCol size="3">
               <IxTypography bold>{{ incident.deviceName }}</IxTypography>
-              <IxTypography textColor="soft">{{
-                incident.ipAddress
-              }}</IxTypography>
+              <IxTypography textColor="soft">{{ incident.ipAddress }}</IxTypography>
             </IxCol>
             <IxCol>
               <IxTypography textColor="soft">{{ incident.date }}</IxTypography>
               <IxTypography textColor="soft">{{ incident.time }}</IxTypography>
             </IxCol>
-            <IxCol className="incident-actions">
+            <IxCol class="incident-actions">
               <IxIconButton variant="secondary" ghost :icon="iconOpenExternal"/>
-              <IxButton outline color="primary" @click="showDemoModal">{{t("incidents.create-task")}}</IxButton>
+              <IxButton outline color="primary" @click="showDemoModal">{{ t("incidents.create-task") }}</IxButton>
+            </IxCol>
+          </IxRow>
+        </IxLayoutGrid>
+        
+        <!-- Mobile Layout -->
+        <IxLayoutGrid v-else :noMargin="true">
+          <IxRow>
+            <IxCol size="6">
+              <IxRow style="gap: 1rem" class="no-wrap">
+                <IxIcon :name="incident.icon" size="24" />
+                <IxTypography bold>{{ incident.incidentName }}</IxTypography>
+              </IxRow>
+              <IxRow>
+                <IxTypography class="info-text" textColor="soft">{{
+                  incident.infoText
+                }}</IxTypography>
+              </IxRow>
+            </IxCol>
+            <IxCol size="4">
+              <IxTypography bold>{{ incident.deviceName }}</IxTypography>
+              <IxTypography textColor="soft">{{ incident.ipAddress }}</IxTypography>
+            </IxCol>
+            <IxCol size="2">
+              <IxIconButton
+                variant="primary"
+                outline
+                :icon="iconUpload"
+                @click="showDemoModal"
+              />
             </IxCol>
           </IxRow>
         </IxLayoutGrid>
@@ -128,6 +161,10 @@ const filteredIncidents = computed(() => props.incidents.filter(searchFilter));
 </template>
 
 <style scoped>
+.no-wrap {
+  flex-wrap: nowrap;
+}
+
 .incident-list {
   display: flex;
   flex-direction: column;
@@ -157,5 +194,12 @@ const filteredIncidents = computed(() => props.incidents.filter(searchFilter));
   padding-left: 2.5rem;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Responsive styles */
+@media (max-width: 48em) {
+  .desktop {
+    display: none;
+  }
 }
 </style>
