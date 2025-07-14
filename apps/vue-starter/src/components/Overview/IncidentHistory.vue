@@ -47,7 +47,7 @@ const searchTerm = ref("");
   align-items: flex-end;
 }
 
-.search-and-filter :deep(ix-input) {
+.search-and-filter :deep(ix-input-group) {
   max-width: 12.5rem;
 }
 
