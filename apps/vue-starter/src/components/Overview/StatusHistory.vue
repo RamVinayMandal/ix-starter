@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onUnmounted } from "vue";
 import { themeSwitcher } from "@siemens/ix";
 import { IxCard, IxCardContent, IxTypography } from "@siemens/ix-vue";
-import { registerTheme } from "@siemens/ix-echarts";
+import { registerTheme, getComputedCSSProperty } from "@siemens/ix-echarts";
 import VueECharts from "vue-echarts";
 import * as echarts from "echarts/core";
-import * as charts from "echarts/charts";
-import * as components from "echarts/components";
-import * as renderer from "echarts/renderers";
+import {
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  MarkLineComponent,
+} from "echarts/components";
+import { LineChart } from "echarts/charts";
+import { CanvasRenderer } from "echarts/renderers";
 import { type EChartsOption } from "echarts";
 import { useI18n } from "vue-i18n";
 import { useChart } from "../../composables/useChart";
-import { CHART_CONSTANTS, getStatusHistoryData, createLineSeriesConfig } from "../../composables/chartConfig";
+import { CHART_CONSTANTS, getStatusHistoryData } from "../../composables/chartConfig";
 
 registerTheme(echarts);
 
 echarts.use([
-  components.TooltipComponent,
-  components.LegendComponent,
-  components.GridComponent,
-  components.MarkLineComponent,
-  charts.LineChart,
-  charts.BarChart,
-  renderer.CanvasRenderer,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  MarkLineComponent,
+  LineChart,
+  CanvasRenderer,
 ]);
 
 const { t } = useI18n();
@@ -31,24 +35,35 @@ const theme = ref(themeSwitcher.getCurrentTheme());
 
 const chartData = getStatusHistoryData();
 
-const chartOption = computed((): EChartsOption => ({
-  grid: CHART_CONSTANTS.GRID.STATUS_HISTORY,
-  legend: {
-    orient: "horizontal" as const,
-    icon: "rect" as const,
-    left: "1",
-    bottom: 0,
-  },
-  xAxis: {
-    data: chartData.months,
-    boundaryGap: false,
-    splitLine: { show: true },
-  },
-  yAxis: {
-    splitLine: { show: true },
-  },
-  series: Object.values(chartData.series).map(createLineSeriesConfig),
-}));
+const chartOption = computed((): EChartsOption => {
+  theme.value;
+  
+  const series = Object.values(chartData.series).map(seriesData => ({
+    type: "line" as const,
+    name: seriesData.name,
+    color: getComputedCSSProperty(seriesData.colorKey),
+    data: seriesData.data,
+  }));
+
+  return {
+    grid: CHART_CONSTANTS.GRID.STATUS_HISTORY,
+    legend: {
+      orient: "horizontal" as const,
+      icon: "rect" as const,
+      left: "1",
+      bottom: 0,
+    },
+    xAxis: {
+      data: chartData.months,
+      boundaryGap: false,
+      splitLine: { show: true },
+    },
+    yAxis: {
+      splitLine: { show: true },
+    },
+    series,
+  };
+});
 
 const initializeChart = async () => {};
 
@@ -58,8 +73,14 @@ useChart({
   optionRef: chartOption
 });
 
-themeSwitcher.themeChanged.on((newTheme: string) => {
+const themeChangeHandler = (newTheme: string) => {
   theme.value = newTheme;
+};
+
+themeSwitcher.themeChanged.on(themeChangeHandler);
+
+onUnmounted(() => {
+  themeSwitcher.themeChanged.off(themeChangeHandler);
 });
 </script>
 
@@ -81,9 +102,9 @@ themeSwitcher.themeChanged.on((newTheme: string) => {
 
 <style scoped>
 .status-history {
-  height: 21rem;
-  min-height: 21rem;
-  max-height: 21rem;
+  height: v-bind('CHART_CONSTANTS.DIMENSIONS.height');
+  min-height: v-bind('CHART_CONSTANTS.DIMENSIONS.minHeight');
+  max-height: v-bind('CHART_CONSTANTS.DIMENSIONS.maxHeight');
 }
 
 .charts {
