@@ -7,17 +7,17 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-export type DeviceState = "Online" | "Offline" | "Maintenance" | "Error";
+export type DeviceState = 'Error' | 'Maintenance' | 'Offline' | 'Online';
 
-export type Device = {
+export interface Device {
   id: string;
   deviceName: string;
   vendor: string;
-  description?: string;
+  deviceType: string;
   status: DeviceState;
   articleNumber?: string;
   macAddress: string;
   ipAddress: string;
   firmwareVersion?: string;
   serialNumber?: string;
-};
+}

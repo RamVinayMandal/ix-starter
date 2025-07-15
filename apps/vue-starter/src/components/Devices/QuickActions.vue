@@ -7,13 +7,32 @@ import {
   IxDropdownQuickActions,
   IxDropdownItem,
   IxDivider,
+  showToast,
 } from "@siemens/ix-vue";
-import {iconPen, iconTrashcan, iconContextMenu, iconDuplicate, iconCut, iconCopy, iconPaste, iconRename, iconPcTower} from "@siemens/ix-icons/icons";
+import {
+  iconPen,
+  iconTrashcan,
+  iconContextMenu,
+  iconDuplicate,
+  iconCut,
+  iconCopy,
+  iconPaste,
+  iconRename,
+  iconPcTower,
+  iconSingleCheck,
+} from "@siemens/ix-icons/icons";
+import { useDeviceStore } from "@/store/deviceStore";
+
+interface DeleteModalResult {
+  deleted: boolean;
+}
+
+const deviceStore = useDeviceStore();
 
 const props = defineProps(["params", "api", "node"]);
 
-const startEditingFirstCell = () => {  
-  console.log(props.params.node.data)
+const startEditingFirstCell = () => {
+  console.log(props.params.node.data);
   props.params.api.startEditingCell({
     rowIndex: props.params.node?.rowIndex,
     colKey: "deviceName",
@@ -21,52 +40,83 @@ const startEditingFirstCell = () => {
 };
 
 const deleteDevice = () => {
-  console.log("Delete device clicked for row:",props.params.node.data);
-  props.params.api.applyTransaction({
-    remove: [props.params.node.data],
-  });
+  deviceStore.deleteDevice(props.params.node.data);
 };
 
-const toggleStatus=()=>{
-  const currentStatus = props.params.node.data.status;
-  console.log(currentStatus);
-  const newStatus = currentStatus === "Online" ? "Offline" : "Online";
-  props.params.node.setDataValue("status", newStatus);
-}
-const startMaintenance=()=>{
-  const currentStatus = props.params.node.data.status;
-  console.log(currentStatus);
-  const newStatus = currentStatus === "Maintenance" ? "Online" : "Maintenance";
-  props.params.node.setDataValue("status", newStatus);  
-}
+const toggleStatus = () => {
+  const updatedDevice = {
+    ...props.params.node.data,
+    status: props.params.node.data.status === "Online" ? "Offline" : "Online",
+  };
+  deviceStore.editDevice(updatedDevice);
+};
+const startMaintenance = () => {
+  const updatedDevice = {
+    ...props.params.node.data,
+    status: props.params.node.data.status === "Maintenance" ? "Online" : "Maintenance",
+  };
+  deviceStore.editDevice(updatedDevice);
+};
 
 const duplicateRow = () => {
-  console.log("Duplicate device clicked for row:",props.params.node);
-  props.params.api.applyTransaction({
-    add: [props.params.node.data],
+  const currentIndex = deviceStore.devices.findIndex((d) => d.id === props.params.node.data.id);
+
+  const newDevice = {
+    ...props.params.node.data,
+    id: (deviceStore.devices.length + 1).toString(),
+  };
+
+  deviceStore.insertDevice(currentIndex + 1, newDevice);
+
+  showToast({
+    message: "Device duplicated",
+    type: "success",
+    icon: iconSingleCheck,
+    iconColor: "color-success",
   });
 };
 
 const copyRow = () => {
-  console.log("Copy device clicked for row:",props.params.node.data);
   navigator.clipboard.writeText(JSON.stringify(props.params.node.data));
+  showToast({
+    message: "Device copied to clipboard",
+    type: "success",
+    icon: iconSingleCheck,
+    iconColor: "color-success",
+  });
 };
 
-const pasteRow = () => {
-  console.log("Paste device clicked for row:",props.params.node.data);
-  navigator.clipboard.readText().then((text) => {
+const pasteRow = async () => {
+  try {
+    const text = await navigator.clipboard.readText();
     const data = JSON.parse(text);
-    props.params.api.applyTransaction({
-      add: [data],
+    const currentIndex = deviceStore.devices.findIndex((d) => d.id === props.params.node.data.id);
+
+    deviceStore.insertDevice(currentIndex + 1, {
+      ...data,
+      id: (deviceStore.devices.length + 1).toString(),
     });
+    showToast({
+    message: "Device pasted",
+    type: "success",
+    icon: iconSingleCheck,
+    iconColor: "color-success",
   });
+  } catch (error) {
+    console.error("Error pasting device:", error);
+  }
 };
 
 const copyAndDeleteRow = () => {
   copyRow();
-  deleteDevice();
+  deleteDevice(); 
+   showToast({
+    message: "Device cut to clipboard",
+    type: "success",
+    icon: iconSingleCheck,
+    iconColor: "color-success",
+  });
 };
-
 </script>
 
 <template>
@@ -80,9 +130,7 @@ const copyAndDeleteRow = () => {
       ghost
       @click="startEditingFirstCell"
     />
-    <IxTooltip id="tooltip-edit" for=".edit-tooltip">
-      Rename
-    </IxTooltip>
+    <IxTooltip id="tooltip-edit" for=".edit-tooltip"> Rename </IxTooltip>
 
     <!-- Delete Button -->
     <IxIconButton
@@ -93,30 +141,36 @@ const copyAndDeleteRow = () => {
       ghost
       @click="deleteDevice"
     />
-    <IxTooltip id="tooltip-delete" for=".delete-tooltip">
-      Delete
-    </IxTooltip>
+    <IxTooltip id="tooltip-delete" for=".delete-tooltip"> Delete </IxTooltip>
 
     <!-- Context Menu -->
     <IxIconButton
-    :icon="iconContextMenu"
-  variant="secondary"
-  ghost
-  :id="`devices-${props.params.node?.rowIndex}`"
-></IxIconButton>
-<IxDropdown :trigger="`devices-${props.params.node?.rowIndex}`">
-  <IxDropdownQuickActions>
-    <IxIconButton :icon="iconDuplicate" ghost @click="duplicateRow"></IxIconButton>
-    <IxIconButton :icon="iconCut" ghost @click="copyAndDeleteRow"></IxIconButton>
-    <IxIconButton :icon="iconCopy" ghost @click="copyRow"></IxIconButton>
-    <IxIconButton :icon="iconPaste" ghost @click="pasteRow"></IxIconButton>
-  </IxDropdownQuickActions>
-  <IxDivider></IxDivider>
-  <IxDropdownItem :icon="iconRename" label="Rename" @click="startEditingFirstCell"></IxDropdownItem>
-  <IxDropdownItem :icon="iconPcTower" label="Toggle Status" @click="toggleStatus"></IxDropdownItem>
-  <IxDivider />
-  <IxDropdownItem :icon="iconTrashcan" label="Delete" @click="deleteDevice"></IxDropdownItem>
-</IxDropdown>
+      :icon="iconContextMenu"
+      variant="secondary"
+      ghost
+      :id="`devices-${props.params.node?.rowIndex}`"
+    ></IxIconButton>
+    <IxDropdown :trigger="`devices-${props.params.node?.rowIndex}`">
+      <IxDropdownQuickActions>
+        <IxIconButton :icon="iconDuplicate" ghost @click="duplicateRow"></IxIconButton>
+        <IxIconButton :icon="iconCut" ghost @click="copyAndDeleteRow"></IxIconButton>
+        <IxIconButton :icon="iconCopy" ghost @click="copyRow"></IxIconButton>
+        <IxIconButton :icon="iconPaste" ghost @click="pasteRow"></IxIconButton>
+      </IxDropdownQuickActions>
+      <IxDivider></IxDivider>
+      <IxDropdownItem
+        :icon="iconRename"
+        label="Rename"
+        @click="startEditingFirstCell"
+      ></IxDropdownItem>
+      <IxDropdownItem
+        :icon="iconPcTower"
+        label="Toggle Status"
+        @click="toggleStatus"
+      ></IxDropdownItem>
+      <IxDivider />
+      <IxDropdownItem :icon="iconTrashcan" label="Delete" @click="deleteDevice"></IxDropdownItem>
+    </IxDropdown>
   </IxRow>
 </template>
 

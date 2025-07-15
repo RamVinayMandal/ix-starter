@@ -11,36 +11,70 @@ import {
   IxCategoryFilter,
   IxDivider,
   IxContentHeader,
+  IxSpinner,
 } from "@siemens/ix-vue";
 import {iconAddCircle, iconSuccess, iconMaintenanceWarning, iconError,iconInfo} from "@siemens/ix-icons/icons";
 
-const dataTableRef = ref<InstanceType<typeof DataTableInstance> | null>(null);
+import { useDeviceStore } from "@/store/deviceStore";
+import type { Device, DeviceState } from "@/types";
+
+const deviceStore = useDeviceStore();
+const isMaintenanceLoading = ref(false);
+const dataTableRef = ref<(InstanceType<typeof DataTableInstance> & DataTableExposed) | null>(null);
 const categories = computed(() => dataTableRef.value?.categories || {});
 
 const filterText = ref<string>("");
 const selectedStatus = ref<string | null>(null);
-const selectedCategory = ref<Record<string, string | null>>({}); // Track selected categories
+const selectedCategory = ref<Record<string, string | null>>({});
 
 const modal = reactive({ addDevicesModal: false });
 const expanded = ref(false);
-interface DeviceData {
-  deviceName?: string;
-  vendor?: string;
-  deviceType?: string;
-  status?: string;
-  articleNumber?: string;
-  macAddress?: string;
-  ipAddress?: string;
-  firmwareVersion?: string;
-  serialNumber?: string;
-  [key: string]: any; // Allow additional properties
+interface DeviceData extends Device {
+  [key: string]: any;
 }
 
-const selectedData = ref<DeviceData | null>(null);
+interface DataTableExposed {
+  refreshData: () => void;
+  categories: Record<string, { label: string; options: string[] }>;
+  deviceState: Record<DeviceState, number>;
+}
+
+const selectedData = ref<Device | null>(null);
+
+const maintenanceButtonLabel = computed(() => {
+  if (!selectedData.value) return "Start Maintenance";
+  return selectedData.value.status === "Maintenance" ? "End Maintenance" : "Start Maintenance";
+});
+
+const toggleMaintenance = async () => {
+  if (!selectedData.value) return;
+  
+  // Show spinner immediately
+  isMaintenanceLoading.value = true;
+  
+  // Wait for 2 seconds first
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  // Then update the status
+  const newStatus: DeviceState = selectedData.value.status === "Maintenance" 
+    ? "Online" 
+    : "Maintenance";
+  
+  const updatedDevice: Device = {
+    ...selectedData.value,
+    status: newStatus
+  };
+  
+  deviceStore.editDevice(updatedDevice);
+  selectedData.value = updatedDevice;
+  
+  // Hide spinner after update
+  isMaintenanceLoading.value = false;
+};
 const addDeviceClick = async () => {
   const modalInstance = await showModal(AddDevicesModal, "600");
   modalInstance.onClose.on((device: DeviceData) => {
-    console.log('device added...' + JSON.stringify(device));
+    console.log("device added..." + JSON.stringify(device));
   });
 };
 
@@ -63,18 +97,17 @@ const handleCellClicked = (payload: { expanded: boolean; data: any }) => {
     expanded.value = true;
   }, 0);
 
-  console.log("Expanded:", expanded.value, "Data:", selectedData.value);
 };
 
 const handlePaneCollapse = () => {
-  expanded.value = false; // Reset expanded state when the pane is closed
+  expanded.value = false;
 };
 
 // New toggleFilter for IxCategoryFilter
 const toggleCategoryFilter = (field: string, value: string) => {
-  selectedCategory.value[field] =
-    selectedCategory.value[field] === value ? null : value;
+  selectedCategory.value[field] = selectedCategory.value[field] === value ? null : value;
 };
+
 
 const formatKey = (key: string) => {
   const formattedKey = key
@@ -85,12 +118,15 @@ const formatKey = (key: string) => {
 };
 const filteredDeviceDetails = computed(() => {
   if (!selectedData.value) return {};
-  return Object.keys(selectedData.value).reduce(
+
+  return (Object.keys(selectedData.value) as Array<keyof Device>).reduce(
     (acc, key) => {
-      acc[key] = selectedData.value ? selectedData.value[key] : null;
+      if (key !== "id") {
+        acc[key] = selectedData.value![key];
+      }
       return acc;
     },
-    {} as Record<string, any>
+    {} as Partial<Record<keyof Device, any>>,
   );
 });
 
@@ -120,12 +156,8 @@ const deviceState = computed(
 
 <template>
   <IxContentHeader slot="header" :headerTitle="'Devices'">
-    <IxButton
-      ghost
-      class="add-devices-button"
-      :icon="iconAddCircle"
-      @click="addDeviceClick"
-    >
+        <IxButton ghost class="add-devices-button" :icon="iconAddCircle" @click="addDeviceClick">
+
       Add device
     </IxButton>
   </IxContentHeader>
@@ -206,18 +238,25 @@ const deviceState = computed(
         </IxTypography>
 
         <!-- Dynamically render device details -->
-        <div v-for="(value, key) in filteredDeviceDetails" :key="key">
-          <IxTypography format="body" textColor="soft">
-            {{ formatKey(key) }}
-          </IxTypography>
-          <IxTypography format="body" textColor="std">
-            {{ value }}
-          </IxTypography>
-          <IxDivider class="divider" />
-        </div>
+        <template v-for="(value, key) in filteredDeviceDetails" :key="key">
+          <div v-if="key !== 'id'">
+            <IxTypography format="body" textColor="soft">
+              {{ formatKey(key) }}
+            </IxTypography>
+            <IxTypography format="body" textColor="std">
+              {{ value }}
+            </IxTypography>
+            <IxDivider class="divider" />
+          </div>
+        </template>
       </div>
 
-      <IxButton outline> Start Maintenance </IxButton>
+      <IxButton outline @click="toggleMaintenance" :disabled="isMaintenanceLoading">
+        <div style="display: flex; align-items: center">
+          <IxSpinner size="small" v-if="isMaintenanceLoading" />
+          {{ maintenanceButtonLabel }}
+        </div>
+      </IxButton>
     </div>
   </IxPane>
 </template>
@@ -256,8 +295,11 @@ const deviceState = computed(
 }
 .pane-popup {
   position: fixed;
-  right: 0;
   z-index: 10;
+  top: 7.2rem;
+  height: 87vh;
+  right: 2rem;
+  width: 320px;
 }
 .deviceName {
   overflow: hidden;
@@ -276,6 +318,6 @@ const deviceState = computed(
   overflow: hidden;
   word-break: break-word;
   padding: 0 0.75rem 1rem;
-  gap: 6rem;
+  gap: 5.9rem;
 }
 </style>

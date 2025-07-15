@@ -7,48 +7,56 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { Device } from '@/types'
+import { defineStore } from "pinia";
+import { ref } from "vue";
+import type { Device } from "@/types";
 
 export interface Filter {
-  id: string
-  value: string
-  operator: string
+  id: string;
+  value: string;
+  operator: string;
 }
 
-export const useDeviceStore = defineStore('device', () => {
-  const devices = ref<Device[]>([])
+export const useDeviceStore = defineStore("device", () => {
+  const devices = ref<Device[]>([]);
 
-  const addDevice = (device: Device) => {
-    const newDevice = { ...device, id: devices.value.length.toString() }
-    devices.value.push(newDevice)
-  }
+  const insertDevice = (index: number, device: Device) => {
+    const newDevice = { ...device, id: devices.value.length.toString() };
+    devices.value.splice(index, 0, newDevice);
+  };
+
+  const addDevice = (device: Omit<Device, 'id'>) => {
+  const newDevice = { 
+    ...device, 
+    id: devices.value.length.toString() 
+  };
+  devices.value.push(newDevice);
+}
 
   const deleteDevice = (device: Device) => {
-    devices.value = devices.value.filter((d) => d.id !== device.id)
-  }
+    devices.value = devices.value.filter((d) => d.id !== device.id);
+  };
 
   const editDevice = (device: Device) => {
-    const index = devices.value.findIndex((d) => d.id === device.id)
+    const index = devices.value.findIndex((d) => d.id === device.id);
     if (index !== -1) {
-      devices.value[index] = device
+      devices.value[index] = device;
     }
-  }
+  };
 
   const fetchDevices = async () => {
     try {
-      const response = await fetch('/data.json')
-      const data = await response.json()
+      const response = await fetch("/data.json");
+      const data = await response.json();
       const devicesWithId = data.map((device: any, index: number) => ({
         ...device,
         id: (index + 1).toString(),
-      }))
-      devices.value = devicesWithId
+      }));
+      devices.value = devicesWithId;
     } catch (error) {
-      console.error('Error fetching devices:', error)
+      console.error("Error fetching devices:", error);
     }
-  }
+  };
 
   return {
     devices,
@@ -56,5 +64,6 @@ export const useDeviceStore = defineStore('device', () => {
     deleteDevice,
     editDevice,
     fetchDevices,
-  }
-})
+    insertDevice,
+  };
+});

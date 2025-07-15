@@ -4,47 +4,40 @@ import { ref, computed, onMounted } from "vue";
 import { AgGridVue } from "ag-grid-vue3";
 import QuickActions from "./QuickActions.vue";
 import StatusCell from "./StatusCell.vue";
+import { useDeviceStore } from "@/store/deviceStore";
+import type { Device, DeviceState } from '@/types';
+import type { GridApi } from 'ag-grid-community';
+
+
+const deviceStore = useDeviceStore(); 
 
 const props = defineProps<{
   filterText: string;
   selectedStatus: string | null;
   selectedCategory: Record<string, string | null>;
 }>();
-const emit = defineEmits(["cell-clicked"]); // Define the event to emit
-const gridApi = ref(null);
+const emit = defineEmits(["cell-clicked"]);
+const gridApi = ref<GridApi | null>(null);
 const onGridReady = (params: any) => {
   gridApi.value = params.api;
 };
 
-interface Device {
-  deviceName: string;
-  vendor: string;
-  deviceType: string;
-  status: string;
-  articleNumber: string;
-  macAddress: string;
-  ipAddress: string;
-  firmwareVersion: string;
-  serialNumber: string;
+interface LocalDevice extends Device {
+  quickActions?: any;
 }
 
-const rowData = ref<Device[]>([]);
+const rowData = computed(() => deviceStore.devices);
+const refreshData = () => {
+  gridApi.value?.refreshCells();
+  gridApi.value?.redrawRows();
+};
 const expanded = ref<boolean>(false);
 const expandedChanged = (event: CustomEvent) => {
   expanded.value = event.detail.expanded;
 };
-const fetchData = async () => {
-  try {
-    const response = await fetch("/data.json");
-    const data = await response.json();
-    rowData.value = data;
-  } catch (error) {
-    console.error("Error fetching data:", error);
-  }
-};
 
 onMounted(() => {
-  fetchData();
+  deviceStore.fetchDevices();
 });
 
 // Column Definitions
@@ -62,10 +55,10 @@ const columnDefs = ref([
     editable: true,
     flex: 1,
     minWidth: 150,
-    cellRenderer: StatusCell, // Use the custom component
+    cellRenderer: StatusCell,
     cellRendererParams: (params: any) => {
       return {
-        rowData: params.data, // Pass only the data for the current row
+        rowData: params.data,
       };
     },
   },
@@ -95,19 +88,19 @@ const columnDefs = ref([
     headerName: "Quick actions",
     maxWidth: 150,
     cellRenderer: QuickActions,
+    cellStyle: { display: 'flex', alignItems: 'center' },
     cellRendererParams: (params: any) => {
       return {
         api: params.api,
         node: params.node,
-        //rowData: rowData.value,
-        rowData: params.data, // Pass only the data for the current row
+        rowData: params.data,
       };
     },
   },
 ]);
 
 const categories = computed(() => {
-  if (rowData.value.length === 0) return {}; // Ensure rowData is loaded before computing categories
+  if (rowData.value.length === 0) return {};
 
   const categoryMap: Record<string, { label: string; options: string[] }> = {};
   columnDefs.value.forEach((col) => {
@@ -116,11 +109,12 @@ const categories = computed(() => {
         label: col.headerName,
         options: [
           ...new Set(
-            rowData.value.map(
-              (device) => device[col.field as keyof Device]?.toString() || ""
-            )
+            rowData.value.map((device) => {
+              const field = col.field as keyof Device;
+              return field in device ? device[field]?.toString() ?? "" : "";
+            })
           ),
-        ],
+        ].filter(Boolean) as string[],
       };
     }
   });
@@ -131,32 +125,35 @@ const categories = computed(() => {
 const filteredRowData = computed(() => {
   return rowData.value.filter((device) => {
     const matchesFilterText = Object.values(device).some((value) =>
-      String(value).toLowerCase().includes(props.filterText.toLowerCase())
+      String(value ?? "").toLowerCase().includes(props.filterText.toLowerCase())
     );
+    
     const matchesStatus = props.selectedStatus
       ? device.status === props.selectedStatus
       : true;
+
     const matchesCategory = Object.entries(props.selectedCategory).every(
       ([field, value]) => {
-        if (!value) return true; // If no value is selected for the category, it matches
-        console.log("Field:", field, "Value:", value);
-        return device[field as keyof Device]?.toString() === value;
+        if (!value) return true;
+        const deviceValue = device[field as keyof Device];
+        return deviceValue?.toString() === value;
       }
     );
+
     return matchesFilterText && matchesStatus && matchesCategory;
   });
 });
 
 const onCellClicked = (event: any) => {
   console.log("Cell clicked:", event.data);
-  emit("cell-clicked", { expanded: true, data: event.data }); // Emit the event with expanded and event.data
+  emit("cell-clicked", { expanded: true, data: event.data });
 };
 
 const showEmptyState = computed(() => filteredRowData.value.length === 0);
 
 //To count the devices status
 const deviceState = computed(() => {
-  const status: Record<string, number> = {
+  const status: Record<DeviceState, number> = {
     Error: 0,
     Maintenance: 0,
     Offline: 0,
@@ -169,7 +166,7 @@ const deviceState = computed(() => {
   return status;
 });
 
-defineExpose({ categories, deviceState });
+defineExpose({ categories, deviceState, refreshData });
 </script>
 
 <template>
@@ -185,6 +182,7 @@ defineExpose({ categories, deviceState });
       :suppressRowTransform="true"
       :suppressCellFocus="true"
       @cell-clicked="onCellClicked"
+      rowSelection="single"
     />
 
     <div v-if="showEmptyState" class="empty-state">
