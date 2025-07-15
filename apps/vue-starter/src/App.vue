@@ -33,6 +33,10 @@ onMounted(() => {
 
 const { t } = useI18n();
 
+const handleDemoModal = () => {
+  showDemoModal(t);
+};
+
 const activeItem = ref(route.path);
 
 const navigateTo = (path: string) => {
@@ -72,9 +76,9 @@ watch(route, (newRoute) => {
         <IxDropdownItem
           :icon=iconUserSettings
           :label="t('settings.user-settings')"
-          @click=showDemoModal
+          @click=handleDemoModal
         ></IxDropdownItem>
-        <IxDropdownItem :icon=iconLogOut :label="t('log-out')" @click=showDemoModal></IxDropdownItem>
+        <IxDropdownItem :icon=iconLogOut :label="t('log-out')" @click=handleDemoModal></IxDropdownItem>
       </IxAvatar>
     </IxApplicationHeader>
     <IxMenu enable-toggle-theme>

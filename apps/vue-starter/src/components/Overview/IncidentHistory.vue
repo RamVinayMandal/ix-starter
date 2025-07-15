@@ -15,6 +15,10 @@ import { showDemoModal } from "@/helpers/modal";
 const { t } = useI18n();
 const incidents = ref(incidentsData);
 const searchTerm = ref("");
+
+const handleDemoModal = () => {
+  showDemoModal(t);
+};
 </script>
 
 <template>
@@ -31,7 +35,7 @@ const searchTerm = ref("");
       </IxInput>
 
       <div class="btn-group">
-        <IxButton :icon="iconCardLayout" :outline="true" @click="showDemoModal">{{ t('cards') }}</IxButton>
+        <IxButton :icon="iconCardLayout" :outline="true" @click="handleDemoModal">{{ t('cards') }}</IxButton>
         <IxButton :icon="iconList">{{ t('list') }}</IxButton>
       </div>
     </div>

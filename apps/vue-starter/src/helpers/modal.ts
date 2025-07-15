@@ -1,14 +1,24 @@
 import { createVNode, render, type Component } from 'vue';
-import { showModal as _showModal, type IxModalSize, type ModalInstance } from '@siemens/ix';
-import DemoModal from '@/components/Common/DemoModal.vue';
+import { showModal as _showModal, showMessage, type IxModalSize, type ModalInstance } from '@siemens/ix';
+import { iconInfo } from '@siemens/ix-icons/icons';
 
-export async function showDemoModal() {
-  const modalInstance = await showModal(DemoModal);
-  modalInstance.onClose.on((message) => {
-    console.log('dialog closed...' + message);
-  });
-  modalInstance.onDismiss.on((message) => {
-    console.log('dialog dismissed...' + message);
+export function showDemoModal(t: (key: string) => string) {
+  showMessage({
+    message: t("demo-message"),
+    icon: iconInfo,
+    actions: [
+      {
+        id: "cancel",
+        text: t("cancel"),
+        type: "cancel",
+      },
+      {
+        id: "okay",
+        text: t("okay"),
+        type: "okay",
+      },
+    ],
+    messageTitle: "Demo app",
   });
 }
 

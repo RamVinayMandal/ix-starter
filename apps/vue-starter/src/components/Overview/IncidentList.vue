@@ -37,6 +37,10 @@ addIcons({
 const { t } = useI18n();
 const isMobile = useIsMobileViewPort();
 
+const handleDemoModal = () => {
+  showDemoModal(t);
+};
+
 const props = defineProps<{
   incidents: Incident[];
   search: string;
@@ -122,7 +126,7 @@ const filteredIncidents = computed(() => {
             </IxCol>
             <IxCol class="incident-actions">
               <IxIconButton variant="secondary" ghost :icon="iconOpenExternal"/>
-              <IxButton outline color="primary" @click="showDemoModal">{{ t("incidents.create-task") }}</IxButton>
+              <IxButton outline color="primary" @click="handleDemoModal">{{ t("incidents.create-task") }}</IxButton>
             </IxCol>
           </IxRow>
         </IxLayoutGrid>
@@ -150,7 +154,7 @@ const filteredIncidents = computed(() => {
                 variant="primary"
                 outline
                 :icon="iconUpload"
-                @click="showDemoModal"
+                @click="handleDemoModal"
               />
             </IxCol>
           </IxRow>
