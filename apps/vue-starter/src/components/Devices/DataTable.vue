@@ -1,47 +1,34 @@
 <script setup lang="ts">
-import {iconProject} from "@siemens/ix-icons/icons";
-import { ref, computed, onMounted } from "vue";
+import { iconProject } from "@siemens/ix-icons/icons";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { AgGridVue } from "ag-grid-vue3";
+import { IxEmptyState } from "@siemens/ix-vue";
 import QuickActions from "./QuickActions.vue";
 import StatusCell from "./StatusCell.vue";
 import { useDeviceStore } from "@/store/deviceStore";
 import type { Device, DeviceState } from '@/types';
-import type { GridApi } from 'ag-grid-community';
+import type { GridApi, IRowNode, ColDef } from 'ag-grid-community';
 
-
-const deviceStore = useDeviceStore(); 
-
-const props = defineProps<{
+interface Props {
   filterText: string;
   selectedStatus: string | null;
   selectedCategory: Record<string, string | null>;
-}>();
-const emit = defineEmits(["cell-clicked"]);
-const gridApi = ref<GridApi | null>(null);
-const onGridReady = (params: any) => {
-  gridApi.value = params.api;
-};
-
-interface LocalDevice extends Device {
-  quickActions?: any;
 }
 
+interface Emits {
+  (e: 'cell-clicked', payload: { expanded: boolean; data: Device }): void;
+}
+
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
+
+const deviceStore = useDeviceStore();
+const gridApi = ref<GridApi | null>(null);
+const showEmptyState = ref(false);
+
 const rowData = computed(() => deviceStore.devices);
-const refreshData = () => {
-  gridApi.value?.refreshCells();
-  gridApi.value?.redrawRows();
-};
-const expanded = ref<boolean>(false);
-const expandedChanged = (event: CustomEvent) => {
-  expanded.value = event.detail.expanded;
-};
 
-onMounted(() => {
-  deviceStore.fetchDevices();
-});
-
-// Column Definitions
-const columnDefs = ref([
+const columnDefs: ColDef[] = [
   {
     field: "deviceName",
     headerName: "Device name",
@@ -56,11 +43,7 @@ const columnDefs = ref([
     flex: 1,
     minWidth: 150,
     cellRenderer: StatusCell,
-    cellRendererParams: (params: any) => {
-      return {
-        rowData: params.data,
-      };
-    },
+    cellRendererParams: (params: any) => ({ rowData: params.data }),
   },
   {
     field: "vendor",
@@ -89,32 +72,30 @@ const columnDefs = ref([
     maxWidth: 150,
     cellRenderer: QuickActions,
     cellStyle: { display: 'flex', alignItems: 'center' },
-    cellRendererParams: (params: any) => {
-      return {
-        api: params.api,
-        node: params.node,
-        rowData: params.data,
-      };
-    },
+    cellRendererParams: (params: any) => ({
+      api: params.api,
+      node: params.node,
+      rowData: params.data,
+    }),
   },
-]);
+];
 
 const categories = computed(() => {
   if (rowData.value.length === 0) return {};
 
   const categoryMap: Record<string, { label: string; options: string[] }> = {};
-  columnDefs.value.forEach((col) => {
-    if (col.field && col.headerName) {
+  
+  columnDefs.forEach((col) => {
+    if (col.field && col.headerName && col.field !== 'quickActions') {
+      const uniqueValues = [...new Set(
+        rowData.value
+          .map(device => device[col.field as keyof Device]?.toString() || '')
+          .filter(Boolean)
+      )];
+      
       categoryMap[col.field] = {
         label: col.headerName,
-        options: [
-          ...new Set(
-            rowData.value.map((device) => {
-              const field = col.field as keyof Device;
-              return field in device ? device[field]?.toString() ?? "" : "";
-            })
-          ),
-        ].filter(Boolean) as string[],
+        options: uniqueValues,
       };
     }
   });
@@ -122,36 +103,6 @@ const categories = computed(() => {
   return categoryMap;
 });
 
-const filteredRowData = computed(() => {
-  return rowData.value.filter((device) => {
-    const matchesFilterText = Object.values(device).some((value) =>
-      String(value ?? "").toLowerCase().includes(props.filterText.toLowerCase())
-    );
-    
-    const matchesStatus = props.selectedStatus
-      ? device.status === props.selectedStatus
-      : true;
-
-    const matchesCategory = Object.entries(props.selectedCategory).every(
-      ([field, value]) => {
-        if (!value) return true;
-        const deviceValue = device[field as keyof Device];
-        return deviceValue?.toString() === value;
-      }
-    );
-
-    return matchesFilterText && matchesStatus && matchesCategory;
-  });
-});
-
-const onCellClicked = (event: any) => {
-  console.log("Cell clicked:", event.data);
-  emit("cell-clicked", { expanded: true, data: event.data });
-};
-
-const showEmptyState = computed(() => filteredRowData.value.length === 0);
-
-//To count the devices status
 const deviceState = computed(() => {
   const status: Record<DeviceState, number> = {
     Error: 0,
@@ -163,7 +114,73 @@ const deviceState = computed(() => {
   rowData.value.forEach((device) => {
     status[device.status] = (status[device.status] || 0) + 1;
   });
+  
   return status;
+});
+
+const isExternalFilterPresent = (): boolean => true;
+
+const doesExternalFilterPass = (node: IRowNode<Device>): boolean => {
+  const device = node.data;
+  if (!device) return false;
+
+  if (props.selectedStatus && device.status !== props.selectedStatus) {
+    return false;
+  }
+
+  for (const [field, value] of Object.entries(props.selectedCategory)) {
+    if (value && device[field as keyof Device] !== value) {
+      return false;
+    }
+  }
+
+  if (props.filterText) {
+    const searchText = props.filterText.toLowerCase();
+    const searchableFields: (keyof Device)[] = ['deviceName', 'vendor', 'deviceType', 'ipAddress', 'articleNumber', 'macAddress', 'firmwareVersion', 'serialNumber'];
+    const matches = searchableFields.some(field =>
+      String(device[field] || '').toLowerCase().includes(searchText)
+    );
+    if (!matches) return false;
+  }
+
+  return true;
+};
+
+const onGridReady = (params: any) => {
+  gridApi.value = params.api;
+  nextTick(() => {
+    updateEmptyState();
+  });
+};
+
+const onCellClicked = (event: any) => {
+  emit("cell-clicked", { expanded: true, data: event.data });
+};
+
+const refreshData = () => {
+  gridApi.value?.refreshCells();
+  gridApi.value?.redrawRows();
+};
+
+const updateEmptyState = () => {
+  if (gridApi.value) {
+    showEmptyState.value = gridApi.value.getDisplayedRowCount() === 0;
+  }
+};
+
+watch(
+  [() => props.selectedStatus, () => props.selectedCategory, () => props.filterText],
+  () => {
+    if (gridApi.value) {
+      gridApi.value.onFilterChanged();
+      nextTick(updateEmptyState);
+    }
+  },
+  { deep: true }
+);
+
+onMounted(() => {
+  deviceStore.fetchDevices();
 });
 
 defineExpose({ categories, deviceState, refreshData });
@@ -173,15 +190,19 @@ defineExpose({ categories, deviceState, refreshData });
   <div class="ag-grid-container">
     <AgGridVue
       @grid-ready="onGridReady"
+      @cell-clicked="onCellClicked"
       class="ag-theme-alpine-dark ag-theme-ix"
       style="width: 100%; height: 100%;"
       :columnDefs="columnDefs"
-      :rowData="filteredRowData"
+      :rowData="rowData"
       :rowHeight="42"
       :frameworkComponents="{ QuickActions }"
       :suppressRowTransform="true"
       :suppressCellFocus="true"
-      @cell-clicked="onCellClicked"
+      :animateRows="true"
+      :suppressAnimationFrame="false"
+      :isExternalFilterPresent="isExternalFilterPresent"
+      :doesExternalFilterPass="doesExternalFilterPass"
       rowSelection="single"
     />
 
@@ -191,7 +212,7 @@ defineExpose({ categories, deviceState, refreshData });
         sub-header="Please remove search terms or add a new device"
         :icon="iconProject"
         action="Reset Filter"
-      ></IxEmptyState>
+      />
     </div>
   </div>
 </template>

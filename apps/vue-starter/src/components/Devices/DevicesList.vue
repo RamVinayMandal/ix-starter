@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, watchEffect } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import DataTableInstance from "./DataTable.vue";
 import AddDevicesModal from "./AddDevicesModal.vue";
 import { showModal } from "@/helpers/modal";
@@ -13,25 +13,9 @@ import {
   IxContentHeader,
   IxSpinner,
 } from "@siemens/ix-vue";
-import {iconAddCircle, iconSuccess, iconMaintenanceWarning, iconError,iconInfo} from "@siemens/ix-icons/icons";
-
+import { iconAddCircle, iconSuccess, iconMaintenanceWarning, iconError, iconInfo } from "@siemens/ix-icons/icons";
 import { useDeviceStore } from "@/store/deviceStore";
 import type { Device, DeviceState } from "@/types";
-
-const deviceStore = useDeviceStore();
-const isMaintenanceLoading = ref(false);
-const dataTableRef = ref<(InstanceType<typeof DataTableInstance> & DataTableExposed) | null>(null);
-const categories = computed(() => dataTableRef.value?.categories || {});
-
-const filterText = ref<string>("");
-const selectedStatus = ref<string | null>(null);
-const selectedCategory = ref<Record<string, string | null>>({});
-
-const modal = reactive({ addDevicesModal: false });
-const expanded = ref(false);
-interface DeviceData extends Device {
-  [key: string]: any;
-}
 
 interface DataTableExposed {
   refreshData: () => void;
@@ -39,83 +23,31 @@ interface DataTableExposed {
   deviceState: Record<DeviceState, number>;
 }
 
+const deviceStore = useDeviceStore();
+const dataTableRef = ref<(InstanceType<typeof DataTableInstance> & DataTableExposed) | null>(null);
+
+const isMaintenanceLoading = ref(false);
 const selectedData = ref<Device | null>(null);
+const expanded = ref(false);
+const closeByEscapeHandler = ref<((event: KeyboardEvent) => void) | null>(null);
+
+const filterText = ref("");
+const selectedStatus = ref<string | null>(null);
+const selectedCategory = ref<Record<string, string | null>>({});
+
+const categories = computed(() => dataTableRef.value?.categories || {});
+const deviceState = computed(() => dataTableRef.value?.deviceState || {
+  Error: 0,
+  Maintenance: 0,
+  Offline: 0,
+  Online: 0,
+});
 
 const maintenanceButtonLabel = computed(() => {
   if (!selectedData.value) return "Start Maintenance";
   return selectedData.value.status === "Maintenance" ? "End Maintenance" : "Start Maintenance";
 });
 
-const toggleMaintenance = async () => {
-  if (!selectedData.value) return;
-  
-  // Show spinner immediately
-  isMaintenanceLoading.value = true;
-  
-  // Wait for 2 seconds first
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Then update the status
-  const newStatus: DeviceState = selectedData.value.status === "Maintenance" 
-    ? "Online" 
-    : "Maintenance";
-  
-  const updatedDevice: Device = {
-    ...selectedData.value,
-    status: newStatus
-  };
-  
-  deviceStore.editDevice(updatedDevice);
-  selectedData.value = updatedDevice;
-  
-  // Hide spinner after update
-  isMaintenanceLoading.value = false;
-};
-const addDeviceClick = async () => {
-  const modalInstance = await showModal(AddDevicesModal, "600");
-  modalInstance.onClose.on((device: DeviceData) => {
-    console.log("device added..." + JSON.stringify(device));
-  });
-};
-
-const resetFilter = () => {
-  filterText.value = "";
-  selectedStatus.value = null;
-  selectedCategory.value = {};
-};
-
-const toggleFilter = (status: string) => {
-  selectedStatus.value = selectedStatus.value === status ? null : status;
-};
-
-const handleCellClicked = (payload: { expanded: boolean; data: any }) => {
-  selectedData.value = payload.data;
-
-  // Force reset the expanded state to ensure the pane opens
-  expanded.value = false;
-  setTimeout(() => {
-    expanded.value = true;
-  }, 0);
-
-};
-
-const handlePaneCollapse = () => {
-  expanded.value = false;
-};
-
-// New toggleFilter for IxCategoryFilter
-const toggleCategoryFilter = (field: string, value: string) => {
-  selectedCategory.value[field] = selectedCategory.value[field] === value ? null : value;
-};
-
-
-const formatKey = (key: string) => {
-  const formattedKey = key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/_/g, " ")
-    .toLowerCase();
-  return formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
-};
 const filteredDeviceDetails = computed(() => {
   if (!selectedData.value) return {};
 
@@ -130,58 +62,112 @@ const filteredDeviceDetails = computed(() => {
   );
 });
 
-onMounted(() => {
-  console.log("dataTableRef:", dataTableRef.value);
-  const pane = document.querySelector("ix-pane");
-  pane?.addEventListener("expandedChanged", (event: CustomEvent) => {
-    expanded.value = event.detail.expanded;
+const toggleMaintenance = async () => {
+  if (!selectedData.value) return;
+  
+  isMaintenanceLoading.value = true;
+  
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  
+  const newStatus: DeviceState = selectedData.value.status === "Maintenance" ? "Online" : "Maintenance";
+  
+  const updatedDevice: Device = {
+    ...selectedData.value,
+    status: newStatus
+  };
+  
+  deviceStore.editDevice(updatedDevice);
+  selectedData.value = updatedDevice;
+  isMaintenanceLoading.value = false;
+};
+
+const addDeviceClick = async () => {
+  const modalInstance = await showModal(AddDevicesModal, "600");
+  modalInstance.onClose.on((device: Device) => {
+    console.log("device added...", device);
   });
-});
+};
 
-// ✅ Watch for changes in categories
-watchEffect(() => {
-  console.log("Updated Categories in DevicesList.vue:", categories.value);
-});
+const resetFilter = () => {
+  filterText.value = "";
+  selectedStatus.value = null;
+  selectedCategory.value = {};
+};
 
-const deviceState = computed(
-  () =>
-    dataTableRef.value?.deviceState || {
-      Error: 0,
-      Maintenance: 0,
-      Offline: 0,
-      Online: 0,
+const toggleFilter = (status: string) => {
+  selectedStatus.value = selectedStatus.value === status ? null : status;
+};
+
+const toggleCategoryFilter = (field: string, value: string) => {
+  selectedCategory.value[field] = selectedCategory.value[field] === value ? null : value;
+};
+
+const handleCellClicked = (payload: { expanded: boolean; data: Device }) => {
+  selectedData.value = payload.data;
+  expanded.value = false;
+  nextTick(() => {
+    expanded.value = true;
+  });
+};
+
+const handlePaneExpandedChanged = (event: CustomEvent) => {
+  expanded.value = event.detail.expanded;
+};
+
+const formatKey = (key: string) => {
+  const formattedKey = key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/_/g, " ")
+    .toLowerCase();
+  return formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
+};
+
+onMounted(() => {
+  const closeByEscape = (event: KeyboardEvent) => {
+    if (!expanded.value) return;
+    if (event.key === "Escape") {
+      expanded.value = false;
     }
-);
+  };
+
+  document.addEventListener("keydown", closeByEscape);
+  closeByEscapeHandler.value = closeByEscape;
+});
+
+onUnmounted(() => {
+  if (closeByEscapeHandler.value) {
+    document.removeEventListener("keydown", closeByEscapeHandler.value);
+  }
+});
 </script>
 
 <template>
-  <IxContentHeader slot="header" :headerTitle="'Devices'">
-        <IxButton ghost class="add-devices-button" :icon="iconAddCircle" @click="addDeviceClick">
-
+  <IxContentHeader slot="header" headerTitle="Devices">
+    <IxButton 
+      ghost 
+      class="add-devices-button" 
+      :icon="iconAddCircle" 
+      @click="addDeviceClick"
+    >
       Add device
     </IxButton>
   </IxContentHeader>
+  
   <section class="devices-page">
-    <!-- Filters -->
     <section class="device-filter">
       <IxCategoryFilter
         placeholder="Filter by"
         class="category-filter"
         :categories="categories"
-        @select="
-          (field: string, value: string) => {
-            console.log(`Selected ${field}: ${value}`);
-            toggleCategoryFilter(field, value);
-          }
-        "
-      ></IxCategoryFilter>
+        @select="toggleCategoryFilter"
+      />
 
       <section class="quick-filter">
         <IxChip
           :outline="selectedStatus !== 'Online'"
           :icon="iconSuccess"
           variant="success"
-          @click="toggleFilter('Online')"
+          @click="() => toggleFilter('Online')"
         >
           {{ deviceState.Online }} online
         </IxChip>
@@ -189,7 +175,7 @@ const deviceState = computed(
           :outline="selectedStatus !== 'Maintenance'"
           :icon="iconMaintenanceWarning"
           variant="warning"
-          @click="toggleFilter('Maintenance')"
+          @click="() => toggleFilter('Maintenance')"
         >
           {{ deviceState.Maintenance }} maintenance
         </IxChip>
@@ -197,7 +183,7 @@ const deviceState = computed(
           :outline="selectedStatus !== 'Error'"
           :icon="iconError"
           variant="alarm"
-          @click="toggleFilter('Error')"
+          @click="() => toggleFilter('Error')"
         >
           {{ deviceState.Error }} error
         </IxChip>
@@ -205,14 +191,13 @@ const deviceState = computed(
           :outline="selectedStatus !== 'Offline'"
           :icon="iconInfo"
           variant="neutral"
-          @click="toggleFilter('Offline')"
+          @click="() => toggleFilter('Offline')"
         >
           {{ deviceState.Offline }} offline
         </IxChip>
       </section>
     </section>
 
-    <!-- Data Table Component -->
     <DataTableInstance
       ref="dataTableRef"
       :filterText="filterText"
@@ -229,7 +214,7 @@ const deviceState = computed(
     hideOnCollapse
     :expanded="expanded"
     class="pane-popup"
-    @collapse="handlePaneCollapse"
+    @expandedChanged="handlePaneExpandedChanged"
   >
     <div class="container">
       <div>
@@ -237,7 +222,6 @@ const deviceState = computed(
           {{ selectedData?.deviceName || "No device selected" }}
         </IxTypography>
 
-        <!-- Dynamically render device details -->
         <template v-for="(value, key) in filteredDeviceDetails" :key="key">
           <div v-if="key !== 'id'">
             <IxTypography format="body" textColor="soft">
@@ -251,9 +235,13 @@ const deviceState = computed(
         </template>
       </div>
 
-      <IxButton outline @click="toggleMaintenance" :disabled="isMaintenanceLoading">
-        <div style="display: flex; align-items: center">
-          <IxSpinner size="small" v-if="isMaintenanceLoading" />
+      <IxButton 
+        outline 
+        :disabled="isMaintenanceLoading" 
+        @click="toggleMaintenance"
+      >
+        <div class="maintenance-button">
+          <IxSpinner v-if="isMaintenanceLoading" size="small" />
           {{ maintenanceButtonLabel }}
         </div>
       </IxButton>
@@ -266,13 +254,6 @@ const deviceState = computed(
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-.device-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
 }
 
 .device-filter {
@@ -293,31 +274,39 @@ const deviceState = computed(
   flex: 1;
   max-width: 100%;
 }
+
 .pane-popup {
-  position: fixed;
+  position: absolute;
+  right: 0;
+  top: 0;
   z-index: 10;
-  top: 7.2rem;
-  height: 87vh;
-  right: 2rem;
-  width: 320px;
 }
+
 .deviceName {
   overflow: hidden;
   text-wrap: nowrap;
   text-overflow: ellipsis;
   margin-bottom: 2rem;
 }
+
 .divider {
   margin: 0.5rem 0;
 }
+
 .container {
   height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   overflow: hidden;
   word-break: break-word;
   padding: 0 0.75rem 1rem;
-  gap: 5.9rem;
+}
+
+.maintenance-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 </style>
