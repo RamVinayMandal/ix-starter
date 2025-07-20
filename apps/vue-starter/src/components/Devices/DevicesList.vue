@@ -14,6 +14,7 @@ import {
   IxSpinner,
 } from "@siemens/ix-vue";
 import { iconAddCircle, iconSuccess, iconMaintenanceWarning, iconError, iconInfo } from "@siemens/ix-icons/icons";
+import { FilterState, LogicalFilterOperator } from '@siemens/ix';
 import { useDeviceStore } from "@/store/deviceStore";
 import type { Device, DeviceState } from "@/types";
 
@@ -31,9 +32,12 @@ const selectedData = ref<Device | null>(null);
 const expanded = ref(false);
 const closeByEscapeHandler = ref<((event: KeyboardEvent) => void) | null>(null);
 
-const filterText = ref("");
 const selectedStatus = ref<string | null>(null);
-const selectedCategory = ref<Record<string, string | null>>({});
+
+const categoryFilterState = ref<FilterState>({
+  tokens: [],
+  categories: [],
+});
 
 const categories = computed(() => dataTableRef.value?.categories || {});
 const deviceState = computed(() => dataTableRef.value?.deviceState || {
@@ -88,18 +92,27 @@ const addDeviceClick = async () => {
   });
 };
 
-const resetFilter = () => {
-  filterText.value = "";
-  selectedStatus.value = null;
-  selectedCategory.value = {};
-};
-
 const toggleFilter = (status: string) => {
-  selectedStatus.value = selectedStatus.value === status ? null : status;
+  const wasActive = selectedStatus.value === status;
+  
+  if (wasActive) {
+    selectedStatus.value = null;
+    categoryFilterState.value = { tokens: [], categories: [] };
+  } else {
+    selectedStatus.value = status;
+    categoryFilterState.value = {
+      tokens: [],
+      categories: [{ id: 'status', value: status, operator: LogicalFilterOperator.EQUAL }],
+    };
+  }
 };
 
-const toggleCategoryFilter = (field: string, value: string) => {
-  selectedCategory.value[field] = selectedCategory.value[field] === value ? null : value;
+const onCategoryFilterChanged = (event: CustomEvent<FilterState>) => {
+  const filterState = event.detail;
+  categoryFilterState.value = filterState;
+  
+  const statusCategory = filterState.categories?.find(cat => cat.id === 'status');
+  selectedStatus.value = statusCategory ? statusCategory.value as string : null;
 };
 
 const handleCellClicked = (payload: { expanded: boolean; data: Device }) => {
@@ -158,8 +171,9 @@ onUnmounted(() => {
       <IxCategoryFilter
         placeholder="Filter by"
         class="category-filter"
+        :filterState="categoryFilterState"
         :categories="categories"
-        @select="toggleCategoryFilter"
+        @filterChanged="onCategoryFilterChanged"
       />
 
       <section class="quick-filter">
@@ -200,9 +214,9 @@ onUnmounted(() => {
 
     <DataTableInstance
       ref="dataTableRef"
-      :filterText="filterText"
+      :filterText="''"
       :selectedStatus="selectedStatus"
-      :selectedCategory="selectedCategory"
+      :selectedCategory="{}"
       @cell-clicked="handleCellClicked"
     />
   </section>
