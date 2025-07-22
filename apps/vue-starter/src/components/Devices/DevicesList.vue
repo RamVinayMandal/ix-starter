@@ -161,6 +161,7 @@ onUnmounted(() => {
       class="add-devices-button" 
       :icon="iconAddCircle" 
       @click="addDeviceClick"
+      aria-label="add device"
     >
       Add device
     </IxButton>
