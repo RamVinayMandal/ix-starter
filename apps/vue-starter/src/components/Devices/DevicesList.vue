@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { useI18n } from "vue-i18n";
 import DataTableInstance from "./DataTable.vue";
 import AddDevicesModal from "./AddDevicesModal.vue";
 import { showModal } from "@/helpers/modal";
@@ -26,20 +27,42 @@ interface DataTableExposed {
 
 const deviceStore = useDeviceStore();
 const dataTableRef = ref<(InstanceType<typeof DataTableInstance> & DataTableExposed) | null>(null);
-
 const isMaintenanceLoading = ref(false);
 const selectedData = ref<Device | null>(null);
 const expanded = ref(false);
 const closeByEscapeHandler = ref<((event: KeyboardEvent) => void) | null>(null);
-
 const selectedStatus = ref<string | null>(null);
+const categoryFilterState = ref<FilterState>({ tokens: [], categories: [] });
 
-const categoryFilterState = ref<FilterState>({
-  tokens: [],
-  categories: [],
+const { t } = useI18n();
+
+function toKebabCase(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/\s+/g, "-")
+    .toLowerCase()
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+const categories = computed<Record<string, { label: string; options: string[] }>>(() => {
+  const devices = deviceStore.devices;
+  if (!devices.length) return {};
+  const keys = Object.keys(devices[0]);
+  const selectedCategoryIds = new Set(categoryFilterState.value.categories.map(cat => cat.id));
+  const categoryMap: Record<string, { label: string; options: string[] }> = {};
+  keys.forEach((key) => {
+    if (selectedCategoryIds.has(key)) return;
+    const uniqueValues = Array.from(new Set(devices.map((device) => (device as any)[key] ?? "")));
+    const kebabKey = toKebabCase(key);
+    let label = t(`device-details.${kebabKey}`);
+    if (label === `device-details.${kebabKey}`) {
+      label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+    }
+    categoryMap[key] = { label, options: uniqueValues };
+  });
+  return categoryMap;
 });
-
-const categories = computed(() => dataTableRef.value?.categories || {});
 const deviceState = computed(() => dataTableRef.value?.deviceState || {
   Error: 0,
   Maintenance: 0,
@@ -47,80 +70,58 @@ const deviceState = computed(() => dataTableRef.value?.deviceState || {
   Online: 0,
 });
 
-const maintenanceButtonLabel = computed(() => {
-  if (!selectedData.value) return "Start Maintenance";
-  return selectedData.value.status === "Maintenance" ? "End Maintenance" : "Start Maintenance";
-});
+const maintenanceButtonLabel = computed(() =>
+  !selectedData.value
+    ? "Start Maintenance"
+    : selectedData.value.status === "Maintenance"
+      ? "End Maintenance"
+      : "Start Maintenance"
+);
 
 const filteredDeviceDetails = computed(() => {
   if (!selectedData.value) return {};
-
-  return (Object.keys(selectedData.value) as Array<keyof Device>).reduce(
-    (acc, key) => {
-      if (key !== "id") {
-        acc[key] = selectedData.value![key];
-      }
-      return acc;
-    },
-    {} as Partial<Record<keyof Device, any>>,
-  );
+  return Object.keys(selectedData.value).reduce((acc, key) => {
+    if (key !== "id") acc[key] = (selectedData.value as any)[key];
+    return acc;
+  }, {} as Record<string, any>);
 });
 
 const toggleMaintenance = async () => {
   if (!selectedData.value) return;
-  
   isMaintenanceLoading.value = true;
-  
   await new Promise(resolve => setTimeout(resolve, 2000));
-  
   const newStatus: DeviceState = selectedData.value.status === "Maintenance" ? "Online" : "Maintenance";
-  
-  const updatedDevice: Device = {
-    ...selectedData.value,
-    status: newStatus
-  };
-  
+  const updatedDevice: Device = { ...selectedData.value, status: newStatus };
   deviceStore.editDevice(updatedDevice);
   selectedData.value = updatedDevice;
   isMaintenanceLoading.value = false;
 };
 
 const addDeviceClick = async () => {
-  const modalInstance = await showModal(AddDevicesModal, "600");
-  modalInstance.onClose.on((device: Device) => {
-    console.log("device added...", device);
-  });
+  await showModal(AddDevicesModal, "600");
 };
 
 const toggleFilter = (status: string) => {
   const wasActive = selectedStatus.value === status;
-  
-  if (wasActive) {
-    selectedStatus.value = null;
-    categoryFilterState.value = { tokens: [], categories: [] };
-  } else {
-    selectedStatus.value = status;
-    categoryFilterState.value = {
-      tokens: [],
-      categories: [{ id: 'status', value: status, operator: LogicalFilterOperator.EQUAL }],
-    };
-  }
+  selectedStatus.value = wasActive ? null : status;
+  categoryFilterState.value = wasActive
+    ? { tokens: [], categories: [] }
+    : { tokens: [], categories: [{ id: 'status', value: status, operator: LogicalFilterOperator.EQUAL }] };
 };
 
 const onCategoryFilterChanged = (event: CustomEvent<FilterState>) => {
   const filterState = event.detail;
   categoryFilterState.value = filterState;
-  
   const statusCategory = filterState.categories?.find(cat => cat.id === 'status');
   selectedStatus.value = statusCategory ? statusCategory.value as string : null;
 };
 
+const onCategoryFilterCleared = () => {};
+
 const handleCellClicked = (payload: { expanded: boolean; data: Device }) => {
   selectedData.value = payload.data;
   expanded.value = false;
-  nextTick(() => {
-    expanded.value = true;
-  });
+  nextTick(() => { expanded.value = true; });
 };
 
 const handlePaneExpandedChanged = (event: CustomEvent) => {
@@ -128,29 +129,20 @@ const handlePaneExpandedChanged = (event: CustomEvent) => {
 };
 
 const formatKey = (key: string) => {
-  const formattedKey = key
-    .replace(/([A-Z])/g, " $1")
-    .replace(/_/g, " ")
-    .toLowerCase();
+  const formattedKey = key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").toLowerCase();
   return formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
 };
 
 onMounted(() => {
+  deviceStore.fetchDevices();
   const closeByEscape = (event: KeyboardEvent) => {
-    if (!expanded.value) return;
-    if (event.key === "Escape") {
-      expanded.value = false;
-    }
+    if (expanded.value && event.key === "Escape") expanded.value = false;
   };
-
   document.addEventListener("keydown", closeByEscape);
   closeByEscapeHandler.value = closeByEscape;
 });
-
 onUnmounted(() => {
-  if (closeByEscapeHandler.value) {
-    document.removeEventListener("keydown", closeByEscapeHandler.value);
-  }
+  if (closeByEscapeHandler.value) document.removeEventListener("keydown", closeByEscapeHandler.value);
 });
 </script>
 
@@ -175,6 +167,7 @@ onUnmounted(() => {
         :filterState="categoryFilterState"
         :categories="categories"
         @filterChanged="onCategoryFilterChanged"
+        @filterCleared="onCategoryFilterCleared"
       />
 
       <section class="quick-filter">
@@ -217,7 +210,7 @@ onUnmounted(() => {
       ref="dataTableRef"
       :filterText="''"
       :selectedStatus="selectedStatus"
-      :selectedCategory="{}"
+      :selectedCategory="categoryFilterState.categories.reduce((acc: Record<string, string>, cat) => { acc[cat.id] = cat.value; return acc }, {})"
       @cell-clicked="handleCellClicked"
     />
   </section>
