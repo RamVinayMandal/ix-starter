@@ -22,8 +22,8 @@ async function filterDevicePageByDeviceName(page: Page, deviceName: string) {
   await expect(categoryFilter.locator("ix-dropdown")).not.toBeVisible();
 }
 
-test.skip("filter for a deviceName", async ({ page }) => {
-  await page.goto("http://localhost:5175/#/devices");
+test("filter for a deviceName", async ({ page }) => {
+  await page.goto("/#/devices");
 
   const aggrid = page.locator(".ag-root-wrapper");
   const rows = aggrid.locator(".ag-center-cols-container .ag-row");
