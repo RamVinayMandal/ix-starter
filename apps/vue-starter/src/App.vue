@@ -1,3 +1,12 @@
+/*
+ * SPDX-FileCopyrightText: 2024 Siemens AG
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
+
 <script setup lang="ts">
 import {
   IxApplication,
@@ -44,7 +53,6 @@ const navigateTo = (path: string) => {
   router.push(path);
 };
 
-// Watch for route changes to update the active item
 watch(route, (newRoute) => {
   activeItem.value = newRoute.path;
 });

@@ -17,7 +17,7 @@
     "faulty-devices": "error",
     "warning-devices": "maintenance",
     "off": "offline",
-    "no-devices-found": "No device selected",
+    "no-devices-found": "No devices found",
     "remove-filter": "Please remove search terms or add a new device"
   },
   "category-filter": {
