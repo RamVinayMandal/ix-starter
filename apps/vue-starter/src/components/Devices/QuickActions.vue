@@ -23,9 +23,25 @@ import {
 } from "@siemens/ix-icons/icons";
 import { useDeviceStore } from "@/store/deviceStore";
 
-interface DeleteModalResult {
-  deleted: boolean;
-}
+import { showDeleteMessage } from "@/helpers/modal";
+import { useI18n } from "vue-i18n";
+import { computed } from "vue";
+
+const { t } = useI18n();
+
+const handleDelete = async () => {
+ const result = await showDeleteMessage(t);
+
+  if (result.actionId === "okay") {
+    deviceStore.deleteDevice(props.params.node.data);
+    showToast({
+      message: t('dropdown-quick-actions.success-messages.delete'),
+      type: "success",
+      icon: iconSingleCheck,
+      iconColor: "color-success",
+    });
+  }
+};
 
 const deviceStore = useDeviceStore();
 
@@ -39,17 +55,27 @@ const startEditingFirstCell = () => {
   });
 };
 
-const deleteDevice = () => {
-  deviceStore.deleteDevice(props.params.node.data);
-};
+const toggleStatusLabel = computed(() => {
+  return props.params.node.data.status === "Online" ? t('dropdown-quick-actions.off') : t('dropdown-quick-actions.on');
+});
 
 const toggleStatus = () => {
   const updatedDevice = {
     ...props.params.node.data,
     status: props.params.node.data.status === "Online" ? "Offline" : "Online",
   };
+  
   deviceStore.editDevice(updatedDevice);
+  
+  props.params.node.setData(updatedDevice);
+  
+  props.params.api.refreshCells({
+    force: true,
+    rowNodes: [props.params.node],
+    columns: ['status']
+  });
 };
+
 const startMaintenance = () => {
   const updatedDevice = {
     ...props.params.node.data,
@@ -69,7 +95,7 @@ const duplicateRow = () => {
   deviceStore.insertDevice(currentIndex + 1, newDevice);
 
   showToast({
-    message: "Device duplicated",
+    message: t('dropdown-quick-actions.success-messages.duplicate'),
     type: "success",
     icon: iconSingleCheck,
     iconColor: "color-success",
@@ -79,7 +105,7 @@ const duplicateRow = () => {
 const copyRow = () => {
   navigator.clipboard.writeText(JSON.stringify(props.params.node.data));
   showToast({
-    message: "Device copied to clipboard",
+    message: t('dropdown-quick-actions.success-messages.copy'),
     type: "success",
     icon: iconSingleCheck,
     iconColor: "color-success",
@@ -97,11 +123,11 @@ const pasteRow = async () => {
       id: (deviceStore.devices.length + 1).toString(),
     });
     showToast({
-    message: "Device pasted",
-    type: "success",
-    icon: iconSingleCheck,
-    iconColor: "color-success",
-  });
+      message: t('dropdown-quick-actions.success-messages.paste'),
+      type: "success",
+      icon: iconSingleCheck,
+      iconColor: "color-success",
+    });
   } catch (error) {
     console.error("Error pasting device:", error);
   }
@@ -109,9 +135,9 @@ const pasteRow = async () => {
 
 const copyAndDeleteRow = () => {
   copyRow();
-  deleteDevice(); 
-   showToast({
-    message: "Device cut to clipboard",
+  handleDelete(); 
+  showToast({
+    message: t('dropdown-quick-actions.success-messages.cut'),
     type: "success",
     icon: iconSingleCheck,
     iconColor: "color-success",
@@ -130,7 +156,7 @@ const copyAndDeleteRow = () => {
       ghost
       @click="startEditingFirstCell"
     />
-    <IxTooltip id="tooltip-edit" for=".edit-tooltip"> Rename </IxTooltip>
+    <IxTooltip id="tooltip-edit" for=".edit-tooltip">{{ t('dropdown-quick-actions.rename') }}</IxTooltip>
 
     <!-- Delete Button -->
     <IxIconButton
@@ -139,9 +165,9 @@ const copyAndDeleteRow = () => {
       :icon="iconTrashcan"
       variant="secondary"
       ghost
-      @click="deleteDevice"
+      @click="handleDelete"
     />
-    <IxTooltip id="tooltip-delete" for=".delete-tooltip"> Delete </IxTooltip>
+    <IxTooltip id="tooltip-delete" for=".delete-tooltip">{{ t('dropdown-quick-actions.delete') }}</IxTooltip>
 
     <!-- Context Menu -->
     <IxIconButton
@@ -160,16 +186,20 @@ const copyAndDeleteRow = () => {
       <IxDivider></IxDivider>
       <IxDropdownItem
         :icon="iconRename"
-        label="Rename"
+        :label="t('dropdown-quick-actions.rename')"
         @click="startEditingFirstCell"
       ></IxDropdownItem>
       <IxDropdownItem
         :icon="iconPcTower"
-        label="Toggle Status"
+        :label="toggleStatusLabel"
         @click="toggleStatus"
       ></IxDropdownItem>
       <IxDivider />
-      <IxDropdownItem :icon="iconTrashcan" label="Delete" @click="deleteDevice"></IxDropdownItem>
+      <IxDropdownItem 
+        :icon="iconTrashcan" 
+        :label="t('dropdown-quick-actions.delete')" 
+        @click="handleDelete"
+      ></IxDropdownItem>
     </IxDropdown>
   </IxRow>
 </template>

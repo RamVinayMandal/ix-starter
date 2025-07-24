@@ -14,8 +14,14 @@ import {
   IxContentHeader,
   IxSpinner,
 } from "@siemens/ix-vue";
-import { iconAddCircle, iconSuccess, iconMaintenanceWarning, iconError, iconInfo } from "@siemens/ix-icons/icons";
-import { FilterState, LogicalFilterOperator } from '@siemens/ix';
+import {
+  iconAddCircle,
+  iconSuccess,
+  iconMaintenanceWarning,
+  iconError,
+  iconInfo,
+} from "@siemens/ix-icons/icons";
+import { FilterState, LogicalFilterOperator } from "@siemens/ix";
 import { useDeviceStore } from "@/store/deviceStore";
 import type { Device, DeviceState } from "@/types";
 
@@ -49,7 +55,7 @@ const categories = computed<Record<string, { label: string; options: string[] }>
   const devices = deviceStore.devices;
   if (!devices.length) return {};
   const keys = Object.keys(devices[0]);
-  const selectedCategoryIds = new Set(categoryFilterState.value.categories.map(cat => cat.id));
+  const selectedCategoryIds = new Set(categoryFilterState.value.categories.map((cat) => cat.id));
   const categoryMap: Record<string, { label: string; options: string[] }> = {};
   keys.forEach((key) => {
     if (selectedCategoryIds.has(key)) return;
@@ -57,46 +63,74 @@ const categories = computed<Record<string, { label: string; options: string[] }>
     const kebabKey = toKebabCase(key);
     let label = t(`device-details.${kebabKey}`);
     if (label === `device-details.${kebabKey}`) {
-      label = key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+      label = key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase());
     }
     categoryMap[key] = { label, options: uniqueValues };
   });
   return categoryMap;
 });
-const deviceState = computed(() => dataTableRef.value?.deviceState || {
-  Error: 0,
-  Maintenance: 0,
-  Offline: 0,
-  Online: 0,
-});
-
-const maintenanceButtonLabel = computed(() =>
-  !selectedData.value
-    ? "Start Maintenance"
-    : selectedData.value.status === "Maintenance"
-      ? "End Maintenance"
-      : "Start Maintenance"
+const deviceState = computed(
+  () =>
+    dataTableRef.value?.deviceState || {
+      Error: 0,
+      Maintenance: 0,
+      Offline: 0,
+      Online: 0,
+    },
 );
+
+const maintenanceButtonLabel = computed(() => {
+  if (!selectedData.value) {
+    return t("device-details-footer.set-maintenance"); // Default if no device selected
+  } else if (selectedData.value.status === "Maintenance") {
+    return t("device-details-footer.end-maintenance");
+  } else {
+    return t("device-details-footer.set-maintenance");
+  }
+});
 
 const filteredDeviceDetails = computed(() => {
   if (!selectedData.value) return {};
-  return Object.keys(selectedData.value).reduce((acc, key) => {
-    if (key !== "id") acc[key] = (selectedData.value as any)[key];
-    return acc;
-  }, {} as Record<string, any>);
+  return Object.keys(selectedData.value).reduce(
+    (acc, key) => {
+      if (key !== "id") acc[key] = (selectedData.value as any)[key];
+      return acc;
+    },
+    {} as Record<string, any>,
+  );
 });
 
 const toggleMaintenance = async () => {
   if (!selectedData.value) return;
+
   isMaintenanceLoading.value = true;
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  const newStatus: DeviceState = selectedData.value.status === "Maintenance" ? "Online" : "Maintenance";
-  const updatedDevice: Device = { ...selectedData.value, status: newStatus };
+
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  const newStatus: DeviceState =
+    selectedData.value.status === "Maintenance" ? "Online" : "Maintenance";
+
+  const updatedDevice: Device = {
+    ...selectedData.value,
+    status: newStatus,
+  };
+
   deviceStore.editDevice(updatedDevice);
   selectedData.value = updatedDevice;
+
+  if (dataTableRef.value && dataTableRef.value.gridApi) {
+    const api = dataTableRef.value.gridApi;
+
+    api.forEachNode((node) => {
+      if (node.data && node.data.id === updatedDevice.id) {
+        // Update the node data
+        node.setData(updatedDevice);
+      }
+    });
+  }
+
   isMaintenanceLoading.value = false;
 };
-
 const addDeviceClick = async () => {
   await showModal(AddDevicesModal, "600");
 };
@@ -106,14 +140,17 @@ const toggleFilter = (status: string) => {
   selectedStatus.value = wasActive ? null : status;
   categoryFilterState.value = wasActive
     ? { tokens: [], categories: [] }
-    : { tokens: [], categories: [{ id: 'status', value: status, operator: LogicalFilterOperator.EQUAL }] };
+    : {
+        tokens: [],
+        categories: [{ id: "status", value: status, operator: LogicalFilterOperator.EQUAL }],
+      };
 };
 
 const onCategoryFilterChanged = (event: CustomEvent<FilterState>) => {
   const filterState = event.detail;
   categoryFilterState.value = filterState;
-  const statusCategory = filterState.categories?.find(cat => cat.id === 'status');
-  selectedStatus.value = statusCategory ? statusCategory.value as string : null;
+  const statusCategory = filterState.categories?.find((cat) => cat.id === "status");
+  selectedStatus.value = statusCategory ? (statusCategory.value as string) : null;
 };
 
 const onCategoryFilterCleared = () => {};
@@ -121,16 +158,29 @@ const onCategoryFilterCleared = () => {};
 const handleCellClicked = (payload: { expanded: boolean; data: Device }) => {
   selectedData.value = payload.data;
   expanded.value = false;
-  nextTick(() => { expanded.value = true; });
+  nextTick(() => {
+    expanded.value = true;
+  });
 };
 
 const handlePaneExpandedChanged = (event: CustomEvent) => {
   expanded.value = event.detail.expanded;
 };
 
+// --- MODIFIED: Translate detail keys ---
 const formatKey = (key: string) => {
-  const formattedKey = key.replace(/([A-Z])/g, " $1").replace(/_/g, " ").toLowerCase();
-  return formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
+  const kebabKey = toKebabCase(key);
+  const translatedLabel = t(`device-details.${kebabKey}`);
+
+  // Fallback to original formatting if no translation key is found
+  if (translatedLabel === `device-details.${kebabKey}`) {
+    const formattedKey = key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/_/g, " ")
+      .toLowerCase();
+    return formattedKey.charAt(0).toUpperCase() + formattedKey.slice(1);
+  }
+  return translatedLabel;
 };
 
 onMounted(() => {
@@ -142,23 +192,24 @@ onMounted(() => {
   closeByEscapeHandler.value = closeByEscape;
 });
 onUnmounted(() => {
-  if (closeByEscapeHandler.value) document.removeEventListener("keydown", closeByEscapeHandler.value);
+  if (closeByEscapeHandler.value)
+    document.removeEventListener("keydown", closeByEscapeHandler.value);
 });
 </script>
 
 <template>
   <IxContentHeader slot="header" headerTitle="Devices">
-    <IxButton 
-      ghost 
-      class="add-devices-button" 
-      :icon="iconAddCircle" 
+    <IxButton
+      ghost
+      class="add-devices-button"
+      :icon="iconAddCircle"
       @click="addDeviceClick"
       aria-label="add device"
     >
       Add device
     </IxButton>
   </IxContentHeader>
-  
+
   <section class="devices-page">
     <section class="device-filter">
       <IxCategoryFilter
@@ -210,12 +261,17 @@ onUnmounted(() => {
       ref="dataTableRef"
       :filterText="''"
       :selectedStatus="selectedStatus"
-      :selectedCategory="categoryFilterState.categories.reduce((acc: Record<string, string>, cat) => { acc[cat.id] = cat.value; return acc }, {})"
+      :selectedCategory="
+        categoryFilterState.categories.reduce((acc: Record<string, string>, cat) => {
+          acc[cat.id] = cat.value;
+          return acc;
+        }, {})
+      "
       @cell-clicked="handleCellClicked"
     />
   </section>
   <IxPane
-    heading="Device Details"
+    :heading="t('device-details-header.title')"
     composition="right"
     size="320px"
     variant="floating"
@@ -227,13 +283,14 @@ onUnmounted(() => {
     <div class="container">
       <div>
         <IxTypography format="h1" class="deviceName">
-          {{ selectedData?.deviceName || "No device selected" }}
+          {{ selectedData?.deviceName || t("device-quick-actions.no-devices-found") }}
         </IxTypography>
 
         <template v-for="(value, key) in filteredDeviceDetails" :key="key">
           <div v-if="key !== 'id'">
             <IxTypography format="body" textColor="soft">
               {{ formatKey(key) }}
+              <!-- This will now use translations -->
             </IxTypography>
             <IxTypography format="body" textColor="std">
               {{ value }}
@@ -243,14 +300,11 @@ onUnmounted(() => {
         </template>
       </div>
 
-      <IxButton 
-        outline 
-        :disabled="isMaintenanceLoading" 
-        @click="toggleMaintenance"
-      >
+      <IxButton outline :disabled="isMaintenanceLoading" @click="toggleMaintenance">
         <div class="maintenance-button">
           <IxSpinner v-if="isMaintenanceLoading" size="small" />
           {{ maintenanceButtonLabel }}
+          <!-- This will now use translations -->
         </div>
       </IxButton>
     </div>
@@ -258,6 +312,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+/* Your existing styles remain unchanged */
 .devices-page {
   display: flex;
   flex-direction: column;

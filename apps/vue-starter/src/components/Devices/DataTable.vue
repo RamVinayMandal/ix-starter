@@ -6,8 +6,9 @@ import { IxEmptyState } from "@siemens/ix-vue";
 import QuickActions from "./QuickActions.vue";
 import StatusCell from "./StatusCell.vue";
 import { useDeviceStore } from "@/store/deviceStore";
-import type { Device, DeviceState } from '@/types';
-import type { GridApi, IRowNode, ColDef } from 'ag-grid-community';
+import type { Device, DeviceState } from "@/types";
+import type { GridApi, IRowNode, ColDef } from "ag-grid-community";
+import { useI18n } from "vue-i18n";
 
 interface Props {
   filterText: string;
@@ -16,11 +17,12 @@ interface Props {
 }
 
 interface Emits {
-  (e: 'cell-clicked', payload: { expanded: boolean; data: Device }): void;
+  (e: "cell-clicked", payload: { expanded: boolean; data: Device }): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+const { t } = useI18n(); // `t` is reactive to locale changes
 
 const deviceStore = useDeviceStore();
 const gridApi = ref<GridApi | null>(null);
@@ -28,17 +30,18 @@ const showEmptyState = ref(false);
 
 const rowData = computed(() => deviceStore.devices);
 
-const columnDefs: ColDef[] = [
+// MODIFIED: Wrap columnDefs in a computed property
+const columnDefs = computed<ColDef[]>(() => [
   {
     field: "deviceName",
-    headerName: "Device name",
+    headerName: t("device-details.device-name"), // This will now re-evaluate when `t` changes (i.e., locale changes)
     editable: true,
     flex: 2,
     minWidth: 150,
   },
   {
     field: "status",
-    headerName: "Status",
+    headerName: t("device-details.status"), // This will now re-evaluate
     editable: true,
     flex: 1,
     minWidth: 150,
@@ -47,52 +50,54 @@ const columnDefs: ColDef[] = [
   },
   {
     field: "vendor",
-    headerName: "Vendor",
+    headerName: t("device-details.vendor"), // This will now re-evaluate
     editable: true,
     flex: 1,
     minWidth: 150,
   },
   {
     field: "deviceType",
-    headerName: "Device type",
+    headerName: t("device-details.device-type"), // This will now re-evaluate
     editable: true,
     flex: 1,
     minWidth: 150,
   },
   {
     field: "ipAddress",
-    headerName: "IP address",
+    headerName: t("device-details.ip-address"), // This will now re-evaluate
     editable: true,
     flex: 1,
     minWidth: 150,
   },
   {
     field: "quickActions",
-    headerName: "Quick actions",
+    headerName: t("quick-actions.title"), // This will now re-evaluate
     maxWidth: 150,
     cellRenderer: QuickActions,
-    cellStyle: { display: 'flex', alignItems: 'center' },
+    cellStyle: { display: "flex", alignItems: "center" },
     cellRendererParams: (params: any) => ({
       api: params.api,
       node: params.node,
       rowData: params.data,
     }),
   },
-];
+]);
 
 const categories = computed(() => {
   if (rowData.value.length === 0) return {};
 
   const categoryMap: Record<string, { label: string; options: string[] }> = {};
-  
-  columnDefs.forEach((col) => {
-    if (col.field && col.headerName && col.field !== 'quickActions') {
-      const uniqueValues = [...new Set(
-        rowData.value
-          .map(device => device[col.field as keyof Device]?.toString() || '')
-          .filter(Boolean)
-      )];
-      
+
+  columnDefs.value.forEach((col) => {
+    if (col.field && col.headerName && col.field !== "quickActions") {
+      const uniqueValues = [
+        ...new Set(
+          rowData.value
+            .map((device) => device[col.field as keyof Device]?.toString() || "")
+            .filter(Boolean),
+        ),
+      ];
+
       categoryMap[col.field] = {
         label: col.headerName,
         options: uniqueValues,
@@ -114,7 +119,6 @@ const deviceState = computed(() => {
   rowData.value.forEach((device) => {
     status[device.status] = (status[device.status] || 0) + 1;
   });
-  
   return status;
 });
 
@@ -136,9 +140,20 @@ const doesExternalFilterPass = (node: IRowNode<Device>): boolean => {
 
   if (props.filterText) {
     const searchText = props.filterText.toLowerCase();
-    const searchableFields: (keyof Device)[] = ['deviceName', 'vendor', 'deviceType', 'ipAddress', 'articleNumber', 'macAddress', 'firmwareVersion', 'serialNumber'];
-    const matches = searchableFields.some(field =>
-      String(device[field] || '').toLowerCase().includes(searchText)
+    const searchableFields: (keyof Device)[] = [
+      "deviceName",
+      "vendor",
+      "deviceType",
+      "ipAddress",
+      "articleNumber",
+      "macAddress",
+      "firmwareVersion",
+      "serialNumber",
+    ];
+    const matches = searchableFields.some((field) =>
+      String(device[field] || "")
+        .toLowerCase()
+        .includes(searchText),
     );
     if (!matches) return false;
   }
@@ -176,14 +191,14 @@ watch(
       nextTick(updateEmptyState);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 onMounted(() => {
   deviceStore.fetchDevices();
 });
 
-defineExpose({ categories, deviceState, refreshData });
+defineExpose({ categories, deviceState, refreshData, gridApi });
 </script>
 
 <template>
@@ -192,7 +207,7 @@ defineExpose({ categories, deviceState, refreshData });
       @grid-ready="onGridReady"
       @cell-clicked="onCellClicked"
       class="ag-theme-alpine-dark ag-theme-ix"
-      style="width: 100%; height: 100%;"
+      style="width: 100%; height: 100%"
       :columnDefs="columnDefs"
       :rowData="rowData"
       :rowHeight="42"
@@ -208,10 +223,10 @@ defineExpose({ categories, deviceState, refreshData });
 
     <div v-if="showEmptyState" class="empty-state">
       <IxEmptyState
-        header="No devices found"
-        sub-header="Please remove search terms or add a new device"
+        :header="t('device-quick-actions.devices')"
+        :sub-header="t('category-filter.placeholder')"
         :icon="iconProject"
-        action="Reset Filter"
+        :action="t('cancel')"
       />
     </div>
   </div>
