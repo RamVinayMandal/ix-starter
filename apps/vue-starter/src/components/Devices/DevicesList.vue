@@ -6,7 +6,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
- 
+
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
@@ -299,17 +299,34 @@ onUnmounted(() => {
   flex-direction: row;
   margin-bottom: 2rem;
   gap: 1rem;
+  align-items: flex-start;
 }
 
-.device-filter section.quick-filter {
+.category-filter {
+  min-width: 16rem;
+  flex-grow: 1;
+}
+
+.quick-filter {
   display: flex;
+  flex-wrap: nowrap;
   gap: 0.5rem;
   min-width: 38rem;
 }
 
-.category-filter {
-  flex: 1;
-  max-width: 100%;
+@media only screen and (max-width: 48em) {
+  .device-filter {
+    flex-direction: column;
+  }
+  .category-filter {
+    min-width: 0rem;
+    width: 100%;
+  }
+  .quick-filter {
+    flex-wrap: wrap;
+    min-width: 0rem;
+    width: 100%;
+  }
 }
 
 .pane-popup {
