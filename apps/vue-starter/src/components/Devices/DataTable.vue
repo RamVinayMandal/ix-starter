@@ -22,7 +22,7 @@ interface Emits {
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
-const { t } = useI18n(); // `t` is reactive to locale changes
+const { t } = useI18n();
 
 const deviceStore = useDeviceStore();
 const gridApi = ref<GridApi | null>(null);
@@ -30,18 +30,17 @@ const showEmptyState = ref(false);
 
 const rowData = computed(() => deviceStore.devices);
 
-// MODIFIED: Wrap columnDefs in a computed property
 const columnDefs = computed<ColDef[]>(() => [
   {
     field: "deviceName",
-    headerName: t("device-details.device-name"), // This will now re-evaluate when `t` changes (i.e., locale changes)
+    headerName: t("device-details.device-name"),
     editable: true,
     flex: 2,
     minWidth: 150,
   },
   {
     field: "status",
-    headerName: t("device-details.status"), // This will now re-evaluate
+    headerName: t("device-details.status"),
     editable: true,
     flex: 1,
     minWidth: 150,
@@ -50,28 +49,28 @@ const columnDefs = computed<ColDef[]>(() => [
   },
   {
     field: "vendor",
-    headerName: t("device-details.vendor"), // This will now re-evaluate
+    headerName: t("device-details.vendor"),
     editable: true,
     flex: 1,
     minWidth: 150,
   },
   {
     field: "deviceType",
-    headerName: t("device-details.device-type"), // This will now re-evaluate
+    headerName: t("device-details.device-type"),
     editable: true,
     flex: 1,
     minWidth: 150,
   },
   {
     field: "ipAddress",
-    headerName: t("device-details.ip-address"), // This will now re-evaluate
+    headerName: t("device-details.ip-address"),
     editable: true,
     flex: 1,
     minWidth: 150,
   },
   {
     field: "quickActions",
-    headerName: t("quick-actions.title"), // This will now re-evaluate
+    headerName: t("quick-actions.title"),
     maxWidth: 150,
     cellRenderer: QuickActions,
     cellStyle: { display: "flex", alignItems: "center" },
@@ -203,31 +202,15 @@ defineExpose({ categories, deviceState, refreshData, gridApi });
 
 <template>
   <div class="ag-grid-container">
-    <AgGridVue
-      @grid-ready="onGridReady"
-      @cell-clicked="onCellClicked"
-      class="ag-theme-alpine-dark ag-theme-ix"
-      style="width: 100%; height: 100%"
-      :columnDefs="columnDefs"
-      :rowData="rowData"
-      :rowHeight="42"
-      :frameworkComponents="{ QuickActions }"
-      :suppressRowTransform="true"
-      :suppressCellFocus="true"
-      :animateRows="true"
-      :suppressAnimationFrame="false"
-      :isExternalFilterPresent="isExternalFilterPresent"
-      :doesExternalFilterPass="doesExternalFilterPass"
-      rowSelection="single"
-    />
+    <AgGridVue @grid-ready="onGridReady" @cell-clicked="onCellClicked" class="ag-theme-alpine-dark ag-theme-ix"
+      style="width: 100%; height: 100%" :columnDefs="columnDefs" :rowData="rowData" :rowHeight="42"
+      :frameworkComponents="{ QuickActions }" :suppressRowTransform="true" :suppressCellFocus="true" :animateRows="true"
+      :suppressAnimationFrame="false" :isExternalFilterPresent="isExternalFilterPresent"
+      :doesExternalFilterPass="doesExternalFilterPass" rowSelection="single" />
 
     <div v-if="showEmptyState" class="empty-state">
-      <IxEmptyState
-        :header="t('device-quick-actions.devices')"
-        :sub-header="t('category-filter.placeholder')"
-        :icon="iconProject"
-        :action="t('cancel')"
-      />
+      <IxEmptyState :header="t('device-quick-actions.devices')" :sub-header="t('category-filter.placeholder')"
+        :icon="iconProject" :action="t('cancel')" />
     </div>
   </div>
 </template>

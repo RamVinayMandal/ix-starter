@@ -154,14 +154,8 @@ themeSwitcher.themeChanged.on((newTheme: string) => {
   <IxCard class="device-range">
     <IxCardContent>
       <IxTypography format="label" bold>{{ t('device-status.title') }}</IxTypography>
-      <VueECharts
-        ref="chartRef"
-        class="charts"
-        :theme="theme"
-        :option="barChartOption"
-        autoresize
-        :init-options="{ renderer: 'canvas' }"
-      />
+      <VueECharts ref="chartRef" class="charts" :theme="theme" :option="barChartOption" autoresize
+        :init-options="{ renderer: 'canvas' }" />
     </IxCardContent>
   </IxCard>
 </template>

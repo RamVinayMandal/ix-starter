@@ -26,7 +26,7 @@ export function useChart({ chartRef, initializeChart, optionRef }: ChartConfig) 
       if (chartRef.value?.$el?.clientWidth > 0 && chartRef.value?.$el?.clientHeight > 0) {
         return true;
       }
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
     return false;
   };
@@ -37,17 +37,17 @@ export function useChart({ chartRef, initializeChart, optionRef }: ChartConfig) 
         chartRef.value.resize();
       }
     } catch (error) {
-      console.warn('Chart resize failed:', error);
+      console.warn("Chart resize failed:", error);
     }
   };
 
   const initChart = async () => {
     try {
       await nextTick();
-      
+
       const hasDimensions = await ensureChartDimensions();
       if (!hasDimensions) {
-        console.warn('Chart container failed to get valid dimensions');
+        console.warn("Chart container failed to get valid dimensions");
         return;
       }
 
@@ -57,7 +57,7 @@ export function useChart({ chartRef, initializeChart, optionRef }: ChartConfig) 
       resizeHandler = safeChartResize;
       window.addEventListener("resize", resizeHandler);
     } catch (error) {
-      console.error('Chart initialization failed:', error);
+      console.error("Chart initialization failed:", error);
     }
   };
 
@@ -65,10 +65,10 @@ export function useChart({ chartRef, initializeChart, optionRef }: ChartConfig) 
     if (!isInitialized.value || !chartRef.value) return;
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
       safeChartResize();
     } catch (error) {
-      console.warn('Viewport change handling failed:', error);
+      console.warn("Viewport change handling failed:", error);
     }
   };
 
@@ -85,6 +85,6 @@ export function useChart({ chartRef, initializeChart, optionRef }: ChartConfig) 
 
   return {
     safeChartResize,
-    isInitialized
+    isInitialized,
   };
 }

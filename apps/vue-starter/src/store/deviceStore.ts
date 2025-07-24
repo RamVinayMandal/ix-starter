@@ -25,13 +25,13 @@ export const useDeviceStore = defineStore("device", () => {
     devices.value.splice(index, 0, newDevice);
   };
 
-  const addDevice = (device: Omit<Device, 'id'>) => {
-  const newDevice = { 
-    ...device, 
-    id: devices.value.length.toString() 
+  const addDevice = (device: Omit<Device, "id">) => {
+    const newDevice = {
+      ...device,
+      id: devices.value.length.toString(),
+    };
+    devices.value.push(newDevice);
   };
-  devices.value.push(newDevice);
-}
 
   const deleteDevice = (device: Device) => {
     devices.value = devices.value.filter((d) => d.id !== device.id);

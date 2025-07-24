@@ -1,21 +1,20 @@
-import { createI18n } from 'vue-i18n';
-import en from './locales/en/translation.json';
-import de from './locales/de/translation.json';
+import { createI18n } from "vue-i18n";
+import en from "./locales/en/translation.json";
+import de from "./locales/de/translation.json";
 
 const messages = {
   en,
-  de
+  de,
 };
 
 const i18n = createI18n({
-  legacy: false, 
-  locale: 'en', 
-  fallbackLocale: 'en', 
+  legacy: false,
+  locale: "en",
+  fallbackLocale: "en",
   messages,
   globalInjection: true,
 });
 
-// Export the i18n instance for direct access
 export { i18n };
 
 export function setupI18n() {

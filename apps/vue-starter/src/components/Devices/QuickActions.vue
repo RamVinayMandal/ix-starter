@@ -30,7 +30,7 @@ import { computed } from "vue";
 const { t } = useI18n();
 
 const handleDelete = async () => {
- const result = await showDeleteMessage(t);
+  const result = await showDeleteMessage(t);
 
   if (result.actionId === "okay") {
     deviceStore.deleteDevice(props.params.node.data);
@@ -64,11 +64,11 @@ const toggleStatus = () => {
     ...props.params.node.data,
     status: props.params.node.data.status === "Online" ? "Offline" : "Online",
   };
-  
+
   deviceStore.editDevice(updatedDevice);
-  
+
   props.params.node.setData(updatedDevice);
-  
+
   props.params.api.refreshCells({
     force: true,
     rowNodes: [props.params.node],
@@ -135,7 +135,7 @@ const pasteRow = async () => {
 
 const copyAndDeleteRow = () => {
   copyRow();
-  handleDelete(); 
+  handleDelete();
   showToast({
     message: t('dropdown-quick-actions.success-messages.cut'),
     type: "success",
@@ -148,34 +148,18 @@ const copyAndDeleteRow = () => {
 <template>
   <IxRow class="quick-actions-row">
     <!-- Edit Button -->
-    <IxIconButton
-      class="edit-tooltip"
-      aria-describedby="tooltip-edit"
-      :icon="iconPen"
-      variant="secondary"
-      ghost
-      @click="startEditingFirstCell"
-    />
+    <IxIconButton class="edit-tooltip" aria-describedby="tooltip-edit" :icon="iconPen" variant="secondary" ghost
+      @click="startEditingFirstCell" />
     <IxTooltip id="tooltip-edit" for=".edit-tooltip">{{ t('dropdown-quick-actions.rename') }}</IxTooltip>
 
     <!-- Delete Button -->
-    <IxIconButton
-      class="delete-tooltip"
-      aria-describedby="tooltip-delete"
-      :icon="iconTrashcan"
-      variant="secondary"
-      ghost
-      @click="handleDelete"
-    />
+    <IxIconButton class="delete-tooltip" aria-describedby="tooltip-delete" :icon="iconTrashcan" variant="secondary"
+      ghost @click="handleDelete" />
     <IxTooltip id="tooltip-delete" for=".delete-tooltip">{{ t('dropdown-quick-actions.delete') }}</IxTooltip>
 
     <!-- Context Menu -->
-    <IxIconButton
-      :icon="iconContextMenu"
-      variant="secondary"
-      ghost
-      :id="`devices-${props.params.node?.rowIndex}`"
-    ></IxIconButton>
+    <IxIconButton :icon="iconContextMenu" variant="secondary" ghost :id="`devices-${props.params.node?.rowIndex}`">
+    </IxIconButton>
     <IxDropdown :trigger="`devices-${props.params.node?.rowIndex}`">
       <IxDropdownQuickActions>
         <IxIconButton :icon="iconDuplicate" ghost @click="duplicateRow"></IxIconButton>
@@ -184,22 +168,12 @@ const copyAndDeleteRow = () => {
         <IxIconButton :icon="iconPaste" ghost @click="pasteRow"></IxIconButton>
       </IxDropdownQuickActions>
       <IxDivider></IxDivider>
-      <IxDropdownItem
-        :icon="iconRename"
-        :label="t('dropdown-quick-actions.rename')"
-        @click="startEditingFirstCell"
-      ></IxDropdownItem>
-      <IxDropdownItem
-        :icon="iconPcTower"
-        :label="toggleStatusLabel"
-        @click="toggleStatus"
-      ></IxDropdownItem>
+      <IxDropdownItem :icon="iconRename" :label="t('dropdown-quick-actions.rename')" @click="startEditingFirstCell">
+      </IxDropdownItem>
+      <IxDropdownItem :icon="iconPcTower" :label="toggleStatusLabel" @click="toggleStatus"></IxDropdownItem>
       <IxDivider />
-      <IxDropdownItem 
-        :icon="iconTrashcan" 
-        :label="t('dropdown-quick-actions.delete')" 
-        @click="handleDelete"
-      ></IxDropdownItem>
+      <IxDropdownItem :icon="iconTrashcan" :label="t('dropdown-quick-actions.delete')" @click="handleDelete">
+      </IxDropdownItem>
     </IxDropdown>
   </IxRow>
 </template>

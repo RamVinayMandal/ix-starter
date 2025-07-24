@@ -70,22 +70,14 @@ function handleThemeClick(event: Event, theme: Theme) {
   <div :class="styles.UserSettings">
     <IxTypography format="h4">{{ t("theme.title", "Theme") }}</IxTypography>
     <section :class="styles.ThemeSelection">
-      <div
-        v-for="theme in themes"
-        :key="theme.value"
-        :class="styles.ThemeButton"
-        @click="(event) => handleThemeClick(event, theme.value)"
-      >
+      <div v-for="theme in themes" :key="theme.value" :class="styles.ThemeButton"
+        @click="(event) => handleThemeClick(event, theme.value)">
         <div :class="[styles.ThemeImagePreview, { [styles.Active]: currentTheme === theme.value }]">
           <img :src="theme.image" :alt="`${theme.name} theme`" draggable="false" />
         </div>
         <div>
-          <IxRadio
-            :id="theme.value"
-            :checked="currentTheme === theme.value"
-            @checkedChange="() => changeTheme(theme.value)"
-            :label="theme.name"
-          />
+          <IxRadio :id="theme.value" :checked="currentTheme === theme.value"
+            @checkedChange="() => changeTheme(theme.value)" :label="theme.name" />
         </div>
       </div>
     </section>
@@ -95,18 +87,10 @@ function handleThemeClick(event: Event, theme: Theme) {
       </IxTypography>
       <section :class="styles.LanguageSelection">
         <IxRadioGroup>
-          <IxRadio
-            id="l_en"
-            :checked="currentLanguage === 'en'"
-            @checkedChange="() => changeLanguage('en')"
-            :label="t('language.en')"
-          />
-          <IxRadio
-            id="l_de"
-            :checked="currentLanguage === 'de'"
-            @checkedChange="() => changeLanguage('de')"
-            :label="t('language.de')"
-          />
+          <IxRadio id="l_en" :checked="currentLanguage === 'en'" @checkedChange="() => changeLanguage('en')"
+            :label="t('language.en')" />
+          <IxRadio id="l_de" :checked="currentLanguage === 'de'" @checkedChange="() => changeLanguage('de')"
+            :label="t('language.de')" />
         </IxRadioGroup>
       </section>
     </section>

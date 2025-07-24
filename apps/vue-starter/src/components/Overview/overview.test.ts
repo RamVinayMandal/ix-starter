@@ -7,14 +7,14 @@
 import { test, expect } from "vitest";
 import { render, fireEvent } from "@testing-library/vue";
 import IncidentHistory from "@/components/Overview/IncidentHistory.vue";
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 import { i18n } from "@/i18n";
 
 test("add filter input", async () => {
   const { getByLabelText, findAllByTestId } = render(IncidentHistory, {
     global: {
-      plugins: [i18n]
-    }
+      plugins: [i18n],
+    },
   });
   const filter = getByLabelText("Filter devices");
   expect(filter).toBeInTheDocument();

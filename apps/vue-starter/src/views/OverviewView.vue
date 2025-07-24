@@ -17,10 +17,7 @@ const containerClasses = computed(() => ({
 </script>
 
 <template>
-  <IxContentHeader
-    slot="header"
-    :headerTitle="t('content-header')"
-  ></IxContentHeader>
+  <IxContentHeader slot="header" :headerTitle="t('content-header')"></IxContentHeader>
   <section class="list" :class="containerClasses">
     <div class="card-container">
       <DeviceRange></DeviceRange>
@@ -56,11 +53,11 @@ const containerClasses = computed(() => ({
   .card-container {
     flex-direction: column;
   }
-  
+
   .mobile-scroll .card-container {
     gap: 1.5rem;
   }
-  
+
   .mobile-scroll ix-card {
     min-height: 21rem;
     flex: none;
@@ -72,7 +69,7 @@ ix-card {
   flex: 1;
 }
 
-ix-card + ix-card {
+ix-card+ix-card {
   flex: 2;
 }
 </style>

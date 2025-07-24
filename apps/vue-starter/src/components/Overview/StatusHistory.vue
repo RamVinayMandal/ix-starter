@@ -37,7 +37,7 @@ const chartData = getStatusHistoryData();
 
 const chartOption = computed((): EChartsOption => {
   theme.value;
-  
+
   const series = Object.values(chartData.series).map(seriesData => ({
     type: "line" as const,
     name: seriesData.name,
@@ -65,7 +65,7 @@ const chartOption = computed((): EChartsOption => {
   };
 });
 
-const initializeChart = async () => {};
+const initializeChart = async () => { };
 
 useChart({
   chartRef,
@@ -88,14 +88,8 @@ onUnmounted(() => {
   <IxCard class="status-history">
     <IxCardContent>
       <IxTypography format="label" bold>{{ t('status-history.title') }}</IxTypography>
-      <VueECharts
-        ref="chartRef"
-        class="charts"
-        :theme="theme"
-        :option="chartOption"
-        autoresize
-        :init-options="{ renderer: CHART_CONSTANTS.RENDERER }"
-      />
+      <VueECharts ref="chartRef" class="charts" :theme="theme" :option="chartOption" autoresize
+        :init-options="{ renderer: CHART_CONSTANTS.RENDERER }" />
     </IxCardContent>
   </IxCard>
 </template>

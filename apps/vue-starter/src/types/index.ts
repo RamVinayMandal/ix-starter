@@ -7,7 +7,7 @@
  * LICENSE file in the root directory of this source tree.
  */
 
-export type DeviceState = 'Error' | 'Maintenance' | 'Offline' | 'Online';
+export type DeviceState = "Error" | "Maintenance" | "Offline" | "Online";
 
 export interface Device {
   id: string;

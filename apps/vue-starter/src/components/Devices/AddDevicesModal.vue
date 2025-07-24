@@ -65,40 +65,22 @@ const dismiss = () => {
     <IxModalContent>
       <form id="modalForm" noValidate>
         <div class="form-grid">
-          <IxInput
-            id="device-name"
-            label="Device name"
-            aria-label="Device name"
-            v-model="device.deviceName"
-          />
+          <IxInput id="device-name" label="Device name" aria-label="Device name" v-model="device.deviceName" />
           <IxInput id="vendor" label="Vendor" aria-label="Vendor" v-model="device.vendor" />
           <div class="device-type-container">
-      <IxInput
-        id="deviceType"
-        label="Device type"
-        aria-label="Device type"
-        v-model="device.deviceType"
-      />
-    </div>
-          
-            <IxSelect
-              label="Status"
-              id="status"
-              :value="device.status"
-              @valueChange="device.status = $event.detail as DeviceState"
-            >
-              <IxSelectItem value="Online" label="Online"></IxSelectItem>
-              <IxSelectItem value="Offline" label="Offline"></IxSelectItem>
-              <IxSelectItem value="Maintenance" label="Maintenance"></IxSelectItem>
-              <IxSelectItem value="Error" label="Error"></IxSelectItem>
-            </IxSelect>
-          
-          <IxInput
-            id="articleNumber"
-            label="Article number"
-            aria-label="Article number"
-            v-model="device.articleNumber"
-          />
+            <IxInput id="deviceType" label="Device type" aria-label="Device type" v-model="device.deviceType" />
+          </div>
+
+          <IxSelect label="Status" id="status" :value="device.status"
+            @valueChange="device.status = $event.detail as DeviceState">
+            <IxSelectItem value="Online" label="Online"></IxSelectItem>
+            <IxSelectItem value="Offline" label="Offline"></IxSelectItem>
+            <IxSelectItem value="Maintenance" label="Maintenance"></IxSelectItem>
+            <IxSelectItem value="Error" label="Error"></IxSelectItem>
+          </IxSelect>
+
+          <IxInput id="articleNumber" label="Article number" aria-label="Article number"
+            v-model="device.articleNumber" />
           <IxInput id="macAddress" label="MAC address" v-model="device.macAddress" />
           <IxInput id="ipAddress" label="IP address" v-model="device.ipAddress" />
           <IxInput id="firmwareVersion" label="Firmware version" v-model="device.firmwareVersion" />
@@ -114,7 +96,7 @@ const dismiss = () => {
 </template>
 
 <style scoped>
-.footer{
+.footer {
   margin-top: 1rem;
 }
 
@@ -134,10 +116,9 @@ const dismiss = () => {
   flex-direction: column;
   width: 100%;
 }
-.modal{
+
+.modal {
   width: 720px;
   max-width: 100%;
 }
-
-
 </style>

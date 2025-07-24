@@ -81,7 +81,7 @@ const deviceState = computed(
 
 const maintenanceButtonLabel = computed(() => {
   if (!selectedData.value) {
-    return t("device-details-footer.set-maintenance"); // Default if no device selected
+    return t("device-details-footer.set-maintenance");
   } else if (selectedData.value.status === "Maintenance") {
     return t("device-details-footer.end-maintenance");
   } else {
@@ -123,7 +123,6 @@ const toggleMaintenance = async () => {
 
     api.forEachNode((node) => {
       if (node.data && node.data.id === updatedDevice.id) {
-        // Update the node data
         node.setData(updatedDevice);
       }
     });
@@ -141,9 +140,9 @@ const toggleFilter = (status: string) => {
   categoryFilterState.value = wasActive
     ? { tokens: [], categories: [] }
     : {
-        tokens: [],
-        categories: [{ id: "status", value: status, operator: LogicalFilterOperator.EQUAL }],
-      };
+      tokens: [],
+      categories: [{ id: "status", value: status, operator: LogicalFilterOperator.EQUAL }],
+    };
 };
 
 const onCategoryFilterChanged = (event: CustomEvent<FilterState>) => {
@@ -153,7 +152,7 @@ const onCategoryFilterChanged = (event: CustomEvent<FilterState>) => {
   selectedStatus.value = statusCategory ? (statusCategory.value as string) : null;
 };
 
-const onCategoryFilterCleared = () => {};
+const onCategoryFilterCleared = () => { };
 
 const handleCellClicked = (payload: { expanded: boolean; data: Device }) => {
   selectedData.value = payload.data;
@@ -167,12 +166,10 @@ const handlePaneExpandedChanged = (event: CustomEvent) => {
   expanded.value = event.detail.expanded;
 };
 
-// --- MODIFIED: Translate detail keys ---
 const formatKey = (key: string) => {
   const kebabKey = toKebabCase(key);
   const translatedLabel = t(`device-details.${kebabKey}`);
 
-  // Fallback to original formatting if no translation key is found
   if (translatedLabel === `device-details.${kebabKey}`) {
     const formattedKey = key
       .replace(/([A-Z])/g, " $1")
@@ -199,87 +196,44 @@ onUnmounted(() => {
 
 <template>
   <IxContentHeader slot="header" headerTitle="Devices">
-    <IxButton
-      ghost
-      class="add-devices-button"
-      :icon="iconAddCircle"
-      @click="addDeviceClick"
-      aria-label="add device"
-    >
+    <IxButton ghost class="add-devices-button" :icon="iconAddCircle" @click="addDeviceClick" aria-label="add device">
       Add device
     </IxButton>
   </IxContentHeader>
 
   <section class="devices-page">
     <section class="device-filter">
-      <IxCategoryFilter
-        placeholder="Filter by"
-        class="category-filter"
-        :filterState="categoryFilterState"
-        :categories="categories"
-        @filterChanged="onCategoryFilterChanged"
-        @filterCleared="onCategoryFilterCleared"
-      />
+      <IxCategoryFilter placeholder="Filter by" class="category-filter" :filterState="categoryFilterState"
+        :categories="categories" @filterChanged="onCategoryFilterChanged" @filterCleared="onCategoryFilterCleared" />
 
       <section class="quick-filter">
-        <IxChip
-          :outline="selectedStatus !== 'Online'"
-          :icon="iconSuccess"
-          variant="success"
-          @click="() => toggleFilter('Online')"
-        >
+        <IxChip :outline="selectedStatus !== 'Online'" :icon="iconSuccess" variant="success"
+          @click="() => toggleFilter('Online')">
           {{ deviceState.Online }} online
         </IxChip>
-        <IxChip
-          :outline="selectedStatus !== 'Maintenance'"
-          :icon="iconMaintenanceWarning"
-          variant="warning"
-          @click="() => toggleFilter('Maintenance')"
-        >
+        <IxChip :outline="selectedStatus !== 'Maintenance'" :icon="iconMaintenanceWarning" variant="warning"
+          @click="() => toggleFilter('Maintenance')">
           {{ deviceState.Maintenance }} maintenance
         </IxChip>
-        <IxChip
-          :outline="selectedStatus !== 'Error'"
-          :icon="iconError"
-          variant="alarm"
-          @click="() => toggleFilter('Error')"
-        >
+        <IxChip :outline="selectedStatus !== 'Error'" :icon="iconError" variant="alarm"
+          @click="() => toggleFilter('Error')">
           {{ deviceState.Error }} error
         </IxChip>
-        <IxChip
-          :outline="selectedStatus !== 'Offline'"
-          :icon="iconInfo"
-          variant="neutral"
-          @click="() => toggleFilter('Offline')"
-        >
+        <IxChip :outline="selectedStatus !== 'Offline'" :icon="iconInfo" variant="neutral"
+          @click="() => toggleFilter('Offline')">
           {{ deviceState.Offline }} offline
         </IxChip>
       </section>
     </section>
 
-    <DataTableInstance
-      ref="dataTableRef"
-      :filterText="''"
-      :selectedStatus="selectedStatus"
-      :selectedCategory="
-        categoryFilterState.categories.reduce((acc: Record<string, string>, cat) => {
-          acc[cat.id] = cat.value;
-          return acc;
-        }, {})
-      "
-      @cell-clicked="handleCellClicked"
-    />
+    <DataTableInstance ref="dataTableRef" :filterText="''" :selectedStatus="selectedStatus" :selectedCategory="categoryFilterState.categories.reduce((acc: Record<string, string>, cat) => {
+      acc[cat.id] = cat.value;
+      return acc;
+    }, {})
+      " @cell-clicked="handleCellClicked" />
   </section>
-  <IxPane
-    :heading="t('device-details-header.title')"
-    composition="right"
-    size="320px"
-    variant="floating"
-    hideOnCollapse
-    :expanded="expanded"
-    class="pane-popup"
-    @expandedChanged="handlePaneExpandedChanged"
-  >
+  <IxPane :heading="t('device-details-header.title')" composition="right" size="320px" variant="floating" hideOnCollapse
+    :expanded="expanded" class="pane-popup" @expandedChanged="handlePaneExpandedChanged">
     <div class="container">
       <div>
         <IxTypography format="h1" class="deviceName">
@@ -290,7 +244,6 @@ onUnmounted(() => {
           <div v-if="key !== 'id'">
             <IxTypography format="body" textColor="soft">
               {{ formatKey(key) }}
-              <!-- This will now use translations -->
             </IxTypography>
             <IxTypography format="body" textColor="std">
               {{ value }}
@@ -304,7 +257,6 @@ onUnmounted(() => {
         <div class="maintenance-button">
           <IxSpinner v-if="isMaintenanceLoading" size="small" />
           {{ maintenanceButtonLabel }}
-          <!-- This will now use translations -->
         </div>
       </IxButton>
     </div>
@@ -312,7 +264,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Your existing styles remain unchanged */
 .devices-page {
   display: flex;
   flex-direction: column;

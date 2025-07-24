@@ -16,7 +16,7 @@ import {
   IxIconButton,
 } from "@siemens/ix-vue";
 import { addIcons } from '@siemens/ix-icons';
-import { 
+import {
   iconCloudUpload,
   iconMaintenanceWarning,
   iconInfo,
@@ -25,7 +25,7 @@ import {
   iconUpload
 } from '@siemens/ix-icons/icons';
 
-addIcons({ 
+addIcons({
   'cloud-upload': iconCloudUpload,
   'maintenance-warning': iconMaintenanceWarning,
   'info': iconInfo,
@@ -73,34 +73,20 @@ const filteredIncidents = computed(() => {
           </IxRow>
         </IxCol>
         <IxCol size="3" sizeSm="4">
-          <IxTypography
-            format="label"
-            bold
-            text-color="soft"
-            class="titleoffset-device"
-          >
+          <IxTypography format="label" bold text-color="soft" class="titleoffset-device">
             Device
           </IxTypography>
         </IxCol>
         <IxCol size="3" class="desktop">
-          <IxTypography
-            format="label"
-            bold
-            text-color="soft"
-            class="titleOffset-date"
-          >
+          <IxTypography format="label" bold text-color="soft" class="titleOffset-date">
             Date
           </IxTypography>
         </IxCol>
       </IxRow>
     </IxLayoutGrid>
     <IxEventList :itemHeight="72" :animated="false" class="event-list">
-      <IxEventListItem
-        v-for="incident in filteredIncidents"
-        :key="incident.id"
-        :itemColor="'color-' + incident.color"
-        data-testid="incident-item"
-      >
+      <IxEventListItem v-for="incident in filteredIncidents" :key="incident.id" :itemColor="'color-' + incident.color"
+        data-testid="incident-item">
         <!-- Desktop Layout -->
         <IxLayoutGrid v-if="!isMobile" :noMargin="true">
           <IxRow>
@@ -112,7 +98,7 @@ const filteredIncidents = computed(() => {
               <IxRow>
                 <IxTypography class="info-text" textColor="soft">{{
                   incident.infoText
-                }}</IxTypography>
+                  }}</IxTypography>
               </IxRow>
             </IxCol>
             <IxCol size="3">
@@ -124,12 +110,12 @@ const filteredIncidents = computed(() => {
               <IxTypography textColor="soft">{{ incident.time }}</IxTypography>
             </IxCol>
             <IxCol class="incident-actions">
-              <IxIconButton variant="secondary" ghost :icon="iconOpenExternal"/>
+              <IxIconButton variant="secondary" ghost :icon="iconOpenExternal" />
               <IxButton outline color="primary" @click="handleDemoModal">{{ t("incidents.create-task") }}</IxButton>
             </IxCol>
           </IxRow>
         </IxLayoutGrid>
-        
+
         <!-- Mobile Layout -->
         <IxLayoutGrid v-else :noMargin="true">
           <IxRow>
@@ -141,7 +127,7 @@ const filteredIncidents = computed(() => {
               <IxRow>
                 <IxTypography class="info-text" textColor="soft">{{
                   incident.infoText
-                }}</IxTypography>
+                  }}</IxTypography>
               </IxRow>
             </IxCol>
             <IxCol size="4">
@@ -149,12 +135,7 @@ const filteredIncidents = computed(() => {
               <IxTypography textColor="soft">{{ incident.ipAddress }}</IxTypography>
             </IxCol>
             <IxCol size="2">
-              <IxIconButton
-                variant="primary"
-                outline
-                :icon="iconUpload"
-                @click="handleDemoModal"
-              />
+              <IxIconButton variant="primary" outline :icon="iconUpload" @click="handleDemoModal" />
             </IxCol>
           </IxRow>
         </IxLayoutGrid>
