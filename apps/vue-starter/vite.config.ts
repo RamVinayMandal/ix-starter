@@ -40,6 +40,9 @@ export default defineConfig({
   preview: {
     open: false,
   },
+  define: {
+    'process.env': {},
+  },
   test: {
     setupFiles: "./src/setupTests.ts",
     browser: {

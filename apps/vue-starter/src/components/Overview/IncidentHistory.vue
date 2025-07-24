@@ -26,7 +26,8 @@ const handleDemoModal = () => {
     <IxTypography format="label" bold>{{ t('incidents.title') }}</IxTypography>
     <div class="search-and-filter">
       <IxInput
-        v-model="searchTerm"
+        :value="searchTerm"
+        @valueChange="searchTerm = $event.detail"
         :placeholder="t('search')"
         type="text"
         aria-label="Filter devices"

@@ -53,9 +53,7 @@ const filteredIncidents = computed(() => {
 
   const query = props.search.toLowerCase();
   return props.incidents.filter(incident =>
-    Object.values(incident).some(
-      value => typeof value === "string" && value.toLowerCase().includes(query)
-    )
+    typeof incident.deviceName === "string" && incident.deviceName.toLowerCase().includes(query)
   );
 });
 </script>
@@ -101,6 +99,7 @@ const filteredIncidents = computed(() => {
         v-for="incident in filteredIncidents"
         :key="incident.id"
         :itemColor="'color-' + incident.color"
+        data-testid="incident-item"
       >
         <!-- Desktop Layout -->
         <IxLayoutGrid v-if="!isMobile" :noMargin="true">
